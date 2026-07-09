@@ -1,0 +1,14 @@
+node_modules
+dist
+coverage
+uploads
+*.log
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.DS_Store
+.vscode
+Dockerfile
+.dockerignore

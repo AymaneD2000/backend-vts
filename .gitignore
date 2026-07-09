@@ -1,0 +1,17 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# Runtime uploads and logs
+uploads/
+*.log
+
+# Editor/system files
+.DS_Store
+.vscode/

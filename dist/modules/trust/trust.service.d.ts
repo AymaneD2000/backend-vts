@@ -1,0 +1,41 @@
+import { OnModuleInit } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { TrustLevel } from '../../common/trust-level';
+import { DriverProfile } from '../users/entities/driver-profile.entity';
+import { CreateGuarantorDto } from './dto/create-guarantor.dto';
+import { UpdateGuarantorDto } from './dto/update-guarantor.dto';
+import { CreatePartnerCompanyDto } from './dto/create-partner-company.dto';
+import { UpdatePartnerCompanyDto } from './dto/update-partner-company.dto';
+import { AssignTrustDto } from './dto/assign-trust.dto';
+import { UpdateTrustConfigDto } from './dto/update-trust-config.dto';
+import { Guarantor } from './entities/guarantor.entity';
+import { PartnerCompany } from './entities/partner-company.entity';
+import { TrustConfig } from './entities/trust-config.entity';
+export declare class TrustService implements OnModuleInit {
+    private readonly guarantors;
+    private readonly companies;
+    private readonly configs;
+    private readonly profiles;
+    constructor(guarantors: Repository<Guarantor>, companies: Repository<PartnerCompany>, configs: Repository<TrustConfig>, profiles: Repository<DriverProfile>);
+    onModuleInit(): Promise<void>;
+    getRequiredTrustLevel(declaredValue: number): Promise<TrustLevel>;
+    private computeTrustLevel;
+    refreshTrustLevel(userId: string): Promise<TrustLevel>;
+    filterByTrustLevel(userIds: string[], minLevel: TrustLevel): Promise<string[]>;
+    private refreshMany;
+    handleKycApproved(payload: {
+        userId: string;
+    }): Promise<void>;
+    createGuarantor(dto: CreateGuarantorDto): Promise<Guarantor>;
+    listGuarantors(): Promise<Guarantor[]>;
+    updateGuarantor(id: string, dto: UpdateGuarantorDto): Promise<Guarantor>;
+    verifyGuarantor(id: string, verified: boolean): Promise<Guarantor>;
+    private refreshReferredDrivers;
+    createCompany(dto: CreatePartnerCompanyDto): Promise<PartnerCompany>;
+    listCompanies(): Promise<PartnerCompany[]>;
+    updateCompany(id: string, dto: UpdatePartnerCompanyDto): Promise<PartnerCompany>;
+    private refreshCompanyDrivers;
+    assign(dto: AssignTrustDto): Promise<DriverProfile>;
+    listConfig(): Promise<TrustConfig[]>;
+    updateConfig(dto: UpdateTrustConfigDto): Promise<TrustConfig>;
+}

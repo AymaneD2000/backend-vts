@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VTS Mali — Admin KYC</title>
+  <style>
+    :root {
+      --bg: #f4f5f7;
+      --card: #ffffff;
+      --border: #e2e4e8;
+      --text: #1f2329;
+      --muted: #6b7280;
+      --accent: #ea580c;
+      --green: #16a34a;
+      --red: #dc2626;
+      --orange: #d97706;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    header {
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 18px; margin: 0; }
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 20px; }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 15px;
+      margin-bottom: 12px;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--accent);
+    }
+    button.secondary { background: #374151; }
+    button.green { background: var(--green); }
+    button.red { background: var(--red); }
+    button:disabled { opacity: 0.5; cursor: default; }
+    button.link {
+      background: none; color: var(--accent); padding: 0; font-weight: 500;
+    }
+    .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .muted { color: var(--muted); font-size: 13px; }
+    .hidden { display: none !important; }
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; background: #fef3c7; color: var(--orange);
+    }
+    .driver-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+    .driver-head h3 { margin: 0 0 4px; font-size: 16px; }
+    .docs { display: flex; gap: 12px; flex-wrap: wrap; margin: 14px 0; }
+    .doc {
+      width: 150px; border: 1px solid var(--border); border-radius: 8px;
+      overflow: hidden; background: #fafafa;
+    }
+    .doc .thumb {
+      width: 100%; height: 110px; object-fit: cover; display: block; background: #eee;
+      border: none; cursor: pointer;
+    }
+    .doc .label { padding: 6px 8px; font-size: 12px; }
+    .error { color: var(--red); font-size: 14px; margin-top: 8px; }
+    .empty { text-align: center; color: var(--muted); padding: 40px 0; }
+    .reason-input { margin-top: 10px; }
+    /* lightbox */
+    .lightbox {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px;
+    }
+    .lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; }
+    .lightbox .close {
+      position: absolute; top: 16px; right: 20px; font-size: 28px; color: #fff;
+      background: none; padding: 0;
+    }
+    /* tabs */
+    .tabs { display: flex; gap: 8px; margin-bottom: 16px; }
+    .tab {
+      background: none; color: var(--muted); border: 1px solid var(--border);
+      border-radius: 999px; padding: 8px 18px;
+    }
+    .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+    h2 { font-size: 18px; }
+    h3 { font-size: 15px; }
+    .card h2:first-child, .card h3:first-child { margin-top: 0; }
+    select {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border);
+      border-radius: 8px; font-size: 15px; margin-bottom: 12px; background: #fff;
+    }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+    td .row { gap: 6px; }
+    button.sm { padding: 6px 10px; font-size: 13px; }
+    .badge.green { background: #dcfce7; color: var(--green); }
+    .badge.red { background: #fee2e2; color: var(--red); }
+    .badge.grey { background: #e5e7eb; color: var(--muted); }
+    .ok { color: var(--green); font-size: 14px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>VTS Mali — Administration</h1>
+    <button id="logoutBtn" class="secondary hidden" onclick="logout()">Déconnexion</button>
+  </header>
+
+  <div class="wrap">
+    <!-- Login -->
+    <div id="loginView" class="card" style="max-width: 380px; margin: 40px auto;">
+      <h2 style="margin-top:0;">Connexion admin</h2>
+      <div id="phoneStep">
+        <label>Numéro de téléphone</label>
+        <input id="phone" type="tel" placeholder="+223..." autocomplete="tel" />
+        <button id="requestBtn" onclick="requestOtp()">Recevoir le code</button>
+      </div>
+      <div id="codeStep" class="hidden">
+        <label>Code reçu par SMS</label>
+        <input id="code" type="text" inputmode="numeric" placeholder="123456" />
+        <div class="row">
+          <button id="verifyBtn" onclick="verifyOtp()">Se connecter</button>
+          <button class="link" onclick="resetLogin()">Changer de numéro</button>
+        </div>
+      </div>
+      <div id="loginError" class="error"></div>
+    </div>
+
+    <!-- Tabs (shown once logged in) -->
+    <div id="tabs" class="tabs hidden">
+      <button class="tab active" data-tab="kyc" onclick="switchTab('kyc')">Vérification KYC</button>
+      <button class="tab" data-tab="trust" onclick="switchTab('trust')">Confiance & Partenaires</button>
+      <button class="tab" data-tab="rental" onclick="switchTab('rental')">Location</button>
+      <button class="tab" data-tab="merchant" onclick="switchTab('merchant')">Commerces</button>
+    </div>
+
+    <!-- KYC dashboard -->
+    <div id="dashView" class="hidden">
+      <div class="row" style="justify-content: space-between; margin-bottom: 12px;">
+        <h2 style="margin:0;">Dossiers en attente</h2>
+        <button class="secondary" onclick="loadPending()">Actualiser</button>
+      </div>
+      <div id="pendingError" class="error"></div>
+      <div id="pendingList"></div>
+    </div>
+
+    <!-- Trust / partners dashboard -->
+    <div id="trustView" class="hidden">
+      <div id="trustError" class="error"></div>
+
+      <!-- Value caps -->
+      <div class="card">
+        <div class="row" style="justify-content: space-between;">
+          <h2 style="margin:0;">Plafonds de valeur (FCFA)</h2>
+          <button class="secondary" onclick="loadTrust()">Actualiser</button>
+        </div>
+        <p class="muted">Valeur déclarée maximale autorisée par niveau de confiance. Vide = illimité.</p>
+        <table>
+          <thead><tr><th>Niveau</th><th>Libellé</th><th>Plafond</th><th></th></tr></thead>
+          <tbody id="configBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Guarantors -->
+      <div class="card">
+        <h2>Garants individuels</h2>
+        <p class="muted">Un garant vérifié permet à ses chauffeurs d'atteindre le niveau 2.</p>
+        <div class="grid2">
+          <div><label>Nom complet</label><input id="gName" placeholder="Nom du garant" /></div>
+          <div><label>Téléphone</label><input id="gPhone" placeholder="+223..." /></div>
+          <div><label>N° pièce d'identité (optionnel)</label><input id="gId" /></div>
+          <div><label>Notes (optionnel)</label><input id="gNotes" /></div>
+        </div>
+        <button onclick="createGuarantor()">Ajouter le garant</button>
+        <div id="gError" class="error"></div>
+        <table style="margin-top:16px;">
+          <thead><tr><th>Nom</th><th>Téléphone</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="guarantorBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Partner companies -->
+      <div class="card">
+        <h2>Entreprises partenaires</h2>
+        <p class="muted">Une entreprise active fait passer ses chauffeurs au niveau 3 (toute valeur).</p>
+        <div class="grid2">
+          <div><label>Nom de l'entreprise</label><input id="cName" /></div>
+          <div>
+            <label>Type</label>
+            <select id="cType">
+              <option value="both">Abonné + Garant</option>
+              <option value="subscriber">Abonné</option>
+              <option value="guarantor">Garant</option>
+            </select>
+          </div>
+          <div><label>Réf. contrat (optionnel)</label><input id="cContract" /></div>
+          <div><label>Téléphone (optionnel)</label><input id="cPhone" /></div>
+          <div><label>Adresse (optionnel)</label><input id="cAddress" /></div>
+        </div>
+        <button onclick="createCompany()">Ajouter l'entreprise</button>
+        <div id="cError" class="error"></div>
+        <table style="margin-top:16px;">
+          <thead><tr><th>Nom</th><th>Type</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="companyBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Assign driver -->
+      <div class="card">
+        <h2>Assigner un chauffeur</h2>
+        <p class="muted">Liez un chauffeur (par son identifiant utilisateur) à un garant ou une entreprise. Laissez « Aucun » pour retirer le lien.</p>
+        <label>Identifiant utilisateur du chauffeur (UUID)</label>
+        <input id="aDriver" placeholder="ex: 8f3c..." />
+        <div class="grid2">
+          <div><label>Garant</label><select id="aGuarantor"></select></div>
+          <div><label>Entreprise</label><select id="aCompany"></select></div>
+        </div>
+        <button onclick="assignDriver()">Appliquer</button>
+        <div id="aError" class="error"></div>
+        <div id="aOk" class="ok"></div>
+      </div>
+    </div>
+
+    <!-- Rental (Location) dashboard -->
+    <div id="rentalView" class="hidden">
+      <div id="rentalError" class="error"></div>
+
+      <!-- Vehicle catalog -->
+      <div class="card">
+        <h2>Catalogue de véhicules</h2>
+        <p class="muted">Types de véhicules proposés à la location, avec leur prix par jour.</p>
+        <div class="grid2">
+          <div><label>Nom</label><input id="rvName" placeholder="ex: Berline 4 places" /></div>
+          <div>
+            <label>Catégorie</label>
+            <select id="rvCategory">
+              <option value="moto">Moto</option>
+              <option value="car">Voiture</option>
+              <option value="tricycle">Tricycle</option>
+            </select>
+          </div>
+          <div><label>Prix / jour (FCFA)</label><input id="rvPrice" type="number" placeholder="35000" /></div>
+          <div><label>Nombre de véhicules</label><input id="rvQty" type="number" min="1" value="1" /></div>
+          <div><label>Description (optionnel)</label><input id="rvDesc" /></div>
+        </div>
+        <button onclick="createVehicle()">Ajouter le véhicule</button>
+        <div id="rvError" class="error"></div>
+        <table style="margin-top:16px;">
+          <thead><tr><th>Nom</th><th>Catégorie</th><th>Prix / jour</th><th>Quantité</th><th>Disponibilité</th><th></th></tr></thead>
+          <tbody id="vehicleBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Bookings (read-only) -->
+      <div class="card">
+        <div class="row" style="justify-content: space-between;">
+          <h2 style="margin:0;">Réservations</h2>
+          <button class="secondary" onclick="loadRental()">Actualiser</button>
+        </div>
+        <table style="margin-top:12px;">
+          <thead><tr><th>Véhicule</th><th>Période</th><th>Jours</th><th>Total</th><th>Statut</th></tr></thead>
+          <tbody id="bookingBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Merchant (Commerces) dashboard -->
+    <div id="merchantView" class="hidden">
+      <div id="merchantError" class="error"></div>
+
+      <div class="card">
+        <h2>Commerces partenaires</h2>
+        <p class="muted">Boutiques et restaurants autorisés à demander des livraisons. Activez un commerce pour donner le rôle commerçant à son propriétaire.</p>
+        <div class="grid2">
+          <div><label>Nom du commerce</label><input id="mName" /></div>
+          <div>
+            <label>Type</label>
+            <select id="mType">
+              <option value="store">Boutique</option>
+              <option value="restaurant">Restaurant</option>
+            </select>
+          </div>
+          <div><label>Identifiant propriétaire (UUID, optionnel)</label><input id="mOwner" placeholder="ex: 8f3c..." /></div>
+          <div><label>Téléphone (optionnel)</label><input id="mPhone" placeholder="+223..." /></div>
+          <div><label>Adresse (optionnel)</label><input id="mAddress" /></div>
+          <div><label>Latitude (optionnel)</label><input id="mLat" type="number" step="any" placeholder="12.6392" /></div>
+          <div><label>Longitude (optionnel)</label><input id="mLng" type="number" step="any" placeholder="-8.0029" /></div>
+        </div>
+        <button onclick="createMerchant()">Ajouter le commerce</button>
+        <div id="mError" class="error"></div>
+        <table style="margin-top:16px;">
+          <thead><tr><th>Nom</th><th>Type</th><th>Adresse</th><th>Statut</th><th></th></tr></thead>
+          <tbody id="merchantBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="lightbox" class="lightbox hidden" onclick="closeLightbox()">
+    <button class="close" onclick="closeLightbox()">&times;</button>
+    <img id="lightboxImg" src="" alt="document" />
+  </div>
+
+  <script>
+    const API = '/api';
+    const DOC_LABELS = {
+      id_card: "Carte d'identité",
+      driver_license: 'Permis de conduire',
+      vehicle_registration: 'Carte grise',
+      profile_photo: 'Photo de profil',
+    };
+
+    let token = localStorage.getItem('vts_admin_token') || null;
+    const objectUrls = [];
+
+    function authHeaders() {
+      return token ? { Authorization: 'Bearer ' + token } : {};
+    }
+
+    async function api(path, options = {}) {
+      const res = await fetch(API + path, {
+        ...options,
+        headers: { 'Content-Type': 'application/json', ...authHeaders(), ...(options.headers || {}) },
+      });
+      const isJson = (res.headers.get('content-type') || '').includes('application/json');
+      const body = isJson ? await res.json() : null;
+      if (!res.ok) {
+        throw new Error((body && body.message) || ('Erreur ' + res.status));
+      }
+      return body;
+    }
+
+    // --- Auth ---
+    async function requestOtp() {
+      const phone = document.getElementById('phone').value.trim();
+      const btn = document.getElementById('requestBtn');
+      setError('loginError', '');
+      if (!phone) return setError('loginError', 'Entrez un numéro.');
+      btn.disabled = true;
+      try {
+        await api('/auth/otp/request', { method: 'POST', body: JSON.stringify({ phone }) });
+        document.getElementById('phoneStep').classList.add('hidden');
+        document.getElementById('codeStep').classList.remove('hidden');
+      } catch (e) {
+        setError('loginError', e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function verifyOtp() {
+      const phone = document.getElementById('phone').value.trim();
+      const code = document.getElementById('code').value.trim();
+      const btn = document.getElementById('verifyBtn');
+      setError('loginError', '');
+      btn.disabled = true;
+      try {
+        const res = await api('/auth/otp/verify', {
+          method: 'POST',
+          body: JSON.stringify({ phone, code }),
+        });
+        token = res.accessToken;
+        localStorage.setItem('vts_admin_token', token);
+        showDashboard();
+      } catch (e) {
+        setError('loginError', e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    function resetLogin() {
+      document.getElementById('codeStep').classList.add('hidden');
+      document.getElementById('phoneStep').classList.remove('hidden');
+      document.getElementById('code').value = '';
+      setError('loginError', '');
+    }
+
+    function logout() {
+      token = null;
+      localStorage.removeItem('vts_admin_token');
+      revokeUrls();
+      document.getElementById('tabs').classList.add('hidden');
+      document.getElementById('dashView').classList.add('hidden');
+      document.getElementById('trustView').classList.add('hidden');
+      document.getElementById('rentalView').classList.add('hidden');
+      document.getElementById('merchantView').classList.add('hidden');
+      document.getElementById('logoutBtn').classList.add('hidden');
+      document.getElementById('loginView').classList.remove('hidden');
+      resetLogin();
+      document.getElementById('phone').value = '';
+    }
+
+    function showDashboard() {
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('tabs').classList.remove('hidden');
+      document.getElementById('logoutBtn').classList.remove('hidden');
+      switchTab('kyc');
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab').forEach((b) =>
+        b.classList.toggle('active', b.dataset.tab === tab));
+      document.getElementById('dashView').classList.toggle('hidden', tab !== 'kyc');
+      document.getElementById('trustView').classList.toggle('hidden', tab !== 'trust');
+      document.getElementById('rentalView').classList.toggle('hidden', tab !== 'rental');
+      document.getElementById('merchantView').classList.toggle('hidden', tab !== 'merchant');
+      if (tab === 'kyc') loadPending();
+      else if (tab === 'trust') loadTrust();
+      else if (tab === 'rental') loadRental();
+      else loadMerchants();
+    }
+
+    // --- Pending dossiers ---
+    async function loadPending() {
+      setError('pendingError', '');
+      const list = document.getElementById('pendingList');
+      list.innerHTML = '<div class="empty">Chargement…</div>';
+      revokeUrls();
+      try {
+        const pending = await api('/kyc/pending');
+        if (!pending.length) {
+          list.innerHTML = '<div class="empty">Aucun dossier en attente.</div>';
+          return;
+        }
+        list.innerHTML = '';
+        for (const driver of pending) {
+          list.appendChild(await renderDriver(driver));
+        }
+      } catch (e) {
+        if (e.message.includes('401') || e.message.includes('403')) return logout();
+        list.innerHTML = '';
+        setError('pendingError', e.message);
+      }
+    }
+
+    async function renderDriver(driver) {
+      const card = document.createElement('div');
+      card.className = 'card';
+      const submitted = driver.submittedAt ? new Date(driver.submittedAt).toLocaleString('fr-FR') : '—';
+      card.innerHTML =
+        '<div class="driver-head">' +
+          '<div>' +
+            '<h3>' + escapeHtml(driver.fullName || 'Sans nom') + '</h3>' +
+            '<div class="muted">' + escapeHtml(driver.phone || '') +
+              (driver.vehicleType ? ' · ' + escapeHtml(driver.vehicleType) : '') + '</div>' +
+            '<div class="muted">Soumis le ' + submitted + '</div>' +
+          '</div>' +
+          '<span class="badge">En attente</span>' +
+        '</div>' +
+        '<div class="docs" data-docs></div>' +
+        '<input class="reason-input hidden" placeholder="Motif du rejet (obligatoire)" />' +
+        '<div class="row" style="margin-top:12px;">' +
+          '<button class="green" data-approve>Approuver</button>' +
+          '<button class="red" data-reject>Rejeter</button>' +
+        '</div>' +
+        '<div class="error" data-err></div>';
+
+      const docsEl = card.querySelector('[data-docs]');
+      const reasonEl = card.querySelector('.reason-input');
+      const errEl = card.querySelector('[data-err]');
+
+      // Load this driver's documents and render thumbnails.
+      try {
+        const docs = await api('/kyc/users/' + driver.userId + '/documents');
+        if (!docs.length) {
+          docsEl.innerHTML = '<div class="muted">Aucun document.</div>';
+        }
+        for (const doc of docs) {
+          docsEl.appendChild(await renderDoc(doc));
+        }
+      } catch (e) {
+        docsEl.innerHTML = '<div class="muted">Erreur de chargement des documents.</div>';
+      }
+
+      card.querySelector('[data-approve]').onclick = () =>
+        review(driver.userId, true, null, card, errEl);
+      card.querySelector('[data-reject]').onclick = () => {
+        if (reasonEl.classList.contains('hidden')) {
+          reasonEl.classList.remove('hidden');
+          reasonEl.focus();
+          return;
+        }
+        const reason = reasonEl.value.trim();
+        if (!reason) { errEl.textContent = 'Indiquez un motif.'; return; }
+        review(driver.userId, false, reason, card, errEl);
+      };
+      return card;
+    }
+
+    async function renderDoc(doc) {
+      const wrap = document.createElement('div');
+      wrap.className = 'doc';
+      const label = DOC_LABELS[doc.type] || doc.type;
+      const url = await fetchDocUrl(doc.id);
+      const isImage = (doc.mimeType || '').startsWith('image/');
+      if (url && isImage) {
+        wrap.innerHTML =
+          '<img class="thumb" src="' + url + '" onclick="openLightbox(\'' + url + '\')" />' +
+          '<div class="label">' + escapeHtml(label) + '</div>';
+      } else if (url) {
+        wrap.innerHTML =
+          '<a class="thumb" href="' + url + '" target="_blank" style="display:flex;align-items:center;justify-content:center;text-decoration:none;color:#374151;">PDF / fichier</a>' +
+          '<div class="label">' + escapeHtml(label) + '</div>';
+      } else {
+        wrap.innerHTML = '<div class="thumb"></div><div class="label">' + escapeHtml(label) + '</div>';
+      }
+      return wrap;
+    }
+
+    // Document file endpoint needs the auth header, so fetch as a blob URL.
+    async function fetchDocUrl(docId) {
+      try {
+        const res = await fetch(API + '/kyc/documents/' + docId + '/file', { headers: authHeaders() });
+        if (!res.ok) return null;
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        objectUrls.push(url);
+        return url;
+      } catch {
+        return null;
+      }
+    }
+
+    async function review(userId, approve, reason, card, errEl) {
+      errEl.textContent = '';
+      const buttons = card.querySelectorAll('button');
+      buttons.forEach((b) => (b.disabled = true));
+      try {
+        await api('/kyc/review/' + userId, {
+          method: 'POST',
+          body: JSON.stringify({ approve, reason: reason || undefined }),
+        });
+        card.style.opacity = '0.5';
+        card.querySelector('[data-approve]').textContent = approve ? 'Approuvé ✓' : 'Rejeté';
+        setTimeout(loadPending, 600);
+      } catch (e) {
+        errEl.textContent = e.message;
+        buttons.forEach((b) => (b.disabled = false));
+      }
+    }
+
+    // --- Trust & partners ---
+    const TRUST_LABELS = { 1: 'KYC simple', 2: 'Référencé', 3: 'Entreprise' };
+    const COMPANY_TYPE_LABELS = { subscriber: 'Abonné', guarantor: 'Garant', both: 'Abonné + Garant' };
+    const COMPANY_STATUS_LABELS = { pending: 'En attente', active: 'Active', suspended: 'Suspendue' };
+    let guarantorsCache = [];
+    let companiesCache = [];
+
+    async function loadTrust() {
+      setError('trustError', '');
+      try {
+        await Promise.all([loadConfig(), loadGuarantors(), loadCompanies()]);
+      } catch (e) {
+        if (e.message.includes('401') || e.message.includes('403')) return logout();
+        setError('trustError', e.message);
+      }
+    }
+
+    // -- Config / caps --
+    async function loadConfig() {
+      const configs = await api('/trust/config');
+      const body = document.getElementById('configBody');
+      body.innerHTML = '';
+      for (const cfg of configs) {
+        const tr = document.createElement('tr');
+        const cap = cfg.maxDeclaredValue == null ? '' : cfg.maxDeclaredValue;
+        tr.innerHTML =
+          '<td>' + cfg.trustLevel + '</td>' +
+          '<td>' + escapeHtml(cfg.label) + '</td>' +
+          '<td><input type="number" value="' + cap + '" placeholder="illimité" ' +
+            'style="margin:0;max-width:140px;" data-cap /></td>' +
+          '<td><button class="sm green" data-save>Enregistrer</button>' +
+            '<div class="error" data-err></div></td>';
+        const capEl = tr.querySelector('[data-cap]');
+        const errEl = tr.querySelector('[data-err]');
+        tr.querySelector('[data-save]').onclick = async (ev) => {
+          ev.target.disabled = true;
+          errEl.textContent = '';
+          const raw = capEl.value.trim();
+          const maxDeclaredValue = raw === '' ? null : parseInt(raw, 10);
+          try {
+            await api('/trust/config', {
+              method: 'PATCH',
+              body: JSON.stringify({ trustLevel: cfg.trustLevel, maxDeclaredValue }),
+            });
+            ev.target.textContent = 'Enregistré ✓';
+            setTimeout(() => (ev.target.textContent = 'Enregistrer'), 1200);
+          } catch (e) {
+            errEl.textContent = e.message;
+          } finally {
+            ev.target.disabled = false;
+          }
+        };
+        body.appendChild(tr);
+      }
+    }
+
+    // -- Guarantors --
+    async function loadGuarantors() {
+      guarantorsCache = await api('/trust/guarantors');
+      const body = document.getElementById('guarantorBody');
+      body.innerHTML = '';
+      if (!guarantorsCache.length) {
+        body.innerHTML = '<tr><td colspan="4" class="muted">Aucun garant.</td></tr>';
+      }
+      for (const g of guarantorsCache) {
+        const tr = document.createElement('tr');
+        const verified = g.isVerified
+          ? '<span class="badge green">Vérifié</span>'
+          : '<span class="badge">Non vérifié</span>';
+        const active = g.isActive ? '' : ' <span class="badge red">Inactif</span>';
+        const actions =
+          (g.isVerified ? '' : '<button class="sm green" data-verify>Vérifier</button>') +
+          '<button class="sm secondary" data-toggle>' +
+            (g.isActive ? 'Désactiver' : 'Activer') + '</button>';
+        tr.innerHTML =
+          '<td>' + escapeHtml(g.fullName) + '</td>' +
+          '<td>' + escapeHtml(g.phone) + '</td>' +
+          '<td>' + verified + active + '</td>' +
+          '<td><div class="row">' + actions + '</div><div class="error" data-err></div></td>';
+        const errEl = tr.querySelector('[data-err]');
+        const verifyBtn = tr.querySelector('[data-verify]');
+        if (verifyBtn) verifyBtn.onclick = () => guard(errEl, () =>
+          api('/trust/guarantors/' + g.id + '/verify', { method: 'POST' }));
+        tr.querySelector('[data-toggle]').onclick = () => guard(errEl, () =>
+          api('/trust/guarantors/' + g.id, {
+            method: 'PATCH',
+            body: JSON.stringify({ isActive: !g.isActive }),
+          }));
+        body.appendChild(tr);
+      }
+      fillAssignSelects();
+    }
+
+    async function createGuarantor() {
+      setError('gError', '');
+      const fullName = document.getElementById('gName').value.trim();
+      const phone = document.getElementById('gPhone').value.trim();
+      const idNumber = document.getElementById('gId').value.trim();
+      const notes = document.getElementById('gNotes').value.trim();
+      if (!fullName || !phone) return setError('gError', 'Nom et téléphone requis.');
+      try {
+        await api('/trust/guarantors', {
+          method: 'POST',
+          body: JSON.stringify({
+            fullName, phone,
+            idNumber: idNumber || undefined,
+            notes: notes || undefined,
+          }),
+        });
+        ['gName', 'gPhone', 'gId', 'gNotes'].forEach((id) =>
+          (document.getElementById(id).value = ''));
+        await loadGuarantors();
+      } catch (e) {
+        setError('gError', e.message);
+      }
+    }
+
+    // -- Companies --
+    async function loadCompanies() {
+      companiesCache = await api('/trust/companies');
+      const body = document.getElementById('companyBody');
+      body.innerHTML = '';
+      if (!companiesCache.length) {
+        body.innerHTML = '<tr><td colspan="4" class="muted">Aucune entreprise.</td></tr>';
+      }
+      for (const c of companiesCache) {
+        const tr = document.createElement('tr');
+        const statusCls = c.status === 'active' ? 'green' : c.status === 'suspended' ? 'red' : '';
+        const status = '<span class="badge ' + statusCls + '">' +
+          (COMPANY_STATUS_LABELS[c.status] || c.status) + '</span>';
+        const actions =
+          (c.status === 'active'
+            ? '<button class="sm red" data-status="suspended">Suspendre</button>'
+            : '<button class="sm green" data-status="active">Activer</button>');
+        tr.innerHTML =
+          '<td>' + escapeHtml(c.name) + '</td>' +
+          '<td>' + (COMPANY_TYPE_LABELS[c.companyType] || c.companyType) + '</td>' +
+          '<td>' + status + '</td>' +
+          '<td><div class="row">' + actions + '</div><div class="error" data-err></div></td>';
+        const errEl = tr.querySelector('[data-err]');
+        tr.querySelector('[data-status]').onclick = (ev) => guard(errEl, () =>
+          api('/trust/companies/' + c.id, {
+            method: 'PATCH',
+            body: JSON.stringify({ status: ev.target.dataset.status }),
+          }));
+        body.appendChild(tr);
+      }
+      fillAssignSelects();
+    }
+
+    async function createCompany() {
+      setError('cError', '');
+      const name = document.getElementById('cName').value.trim();
+      const companyType = document.getElementById('cType').value;
+      const contractRef = document.getElementById('cContract').value.trim();
+      const phone = document.getElementById('cPhone').value.trim();
+      const address = document.getElementById('cAddress').value.trim();
+      if (!name) return setError('cError', "Nom de l'entreprise requis.");
+      try {
+        await api('/trust/companies', {
+          method: 'POST',
+          body: JSON.stringify({
+            name, companyType,
+            contractRef: contractRef || undefined,
+            phone: phone || undefined,
+            address: address || undefined,
+          }),
+        });
+        ['cName', 'cContract', 'cPhone', 'cAddress'].forEach((id) =>
+          (document.getElementById(id).value = ''));
+        await loadCompanies();
+      } catch (e) {
+        setError('cError', e.message);
+      }
+    }
+
+    // -- Assignment --
+    function fillAssignSelects() {
+      const gSel = document.getElementById('aGuarantor');
+      const cSel = document.getElementById('aCompany');
+      gSel.innerHTML = '<option value="">Aucun</option>' +
+        guarantorsCache.map((g) =>
+          '<option value="' + g.id + '">' + escapeHtml(g.fullName) +
+          (g.isVerified ? '' : ' (non vérifié)') + '</option>').join('');
+      cSel.innerHTML = '<option value="">Aucune</option>' +
+        companiesCache.map((c) =>
+          '<option value="' + c.id + '">' + escapeHtml(c.name) +
+          (c.status === 'active' ? '' : ' (' + (COMPANY_STATUS_LABELS[c.status] || c.status) + ')') +
+          '</option>').join('');
+    }
+
+    async function assignDriver() {
+      setError('aError', '');
+      document.getElementById('aOk').textContent = '';
+      const driverUserId = document.getElementById('aDriver').value.trim();
+      if (!driverUserId) return setError('aError', 'Identifiant du chauffeur requis.');
+      // Send null to clear a link, a UUID to set it.
+      const guarantorId = document.getElementById('aGuarantor').value || null;
+      const partnerCompanyId = document.getElementById('aCompany').value || null;
+      try {
+        const res = await api('/trust/assign', {
+          method: 'POST',
+          body: JSON.stringify({ driverUserId, guarantorId, partnerCompanyId }),
+        });
+        document.getElementById('aOk').textContent =
+          'Chauffeur mis à jour — niveau de confiance ' +
+          (res.trustLevel ?? 0) + ' (' + (TRUST_LABELS[res.trustLevel] || 'aucun') + ').';
+      } catch (e) {
+        setError('aError', e.message);
+      }
+    }
+
+    // Run an action, surface errors inline, then refresh the trust dashboard.
+    async function guard(errEl, fn) {
+      errEl.textContent = '';
+      try {
+        await fn();
+        await loadTrust();
+      } catch (e) {
+        errEl.textContent = e.message;
+      }
+    }
+
+    // --- Rental (Location) ---
+    const RENTAL_CATEGORY_LABELS = { moto: 'Moto', car: 'Voiture', tricycle: 'Tricycle' };
+    const RENTAL_STATUS_LABELS = {
+      requested: 'Demandée', accepted: 'Acceptée', in_progress: 'En cours',
+      completed: 'Terminée', cancelled: 'Annulée', no_driver: 'Sans chauffeur',
+    };
+
+    async function loadRental() {
+      setError('rentalError', '');
+      try {
+        await Promise.all([loadVehicles(), loadBookings()]);
+      } catch (e) {
+        if (e.message.includes('401') || e.message.includes('403')) return logout();
+        setError('rentalError', e.message);
+      }
+    }
+
+    async function loadVehicles() {
+      const vehicles = await api('/rentals/vehicles');
+      const body = document.getElementById('vehicleBody');
+      body.innerHTML = '';
+      if (!vehicles.length) {
+        body.innerHTML = '<tr><td colspan="6" class="muted">Aucun véhicule.</td></tr>';
+      }
+      for (const v of vehicles) {
+        const tr = document.createElement('tr');
+        const avail = v.isAvailable
+          ? '<span class="badge green">Disponible</span>'
+          : '<span class="badge grey">Indisponible</span>';
+        tr.innerHTML =
+          '<td>' + escapeHtml(v.name) + '</td>' +
+          '<td>' + (RENTAL_CATEGORY_LABELS[v.category] || v.category) + '</td>' +
+          '<td>' + Number(v.dailyPrice).toLocaleString('fr-FR') + ' FCFA</td>' +
+          '<td>' + (v.quantity ?? 1) + '</td>' +
+          '<td>' + avail + '</td>' +
+          '<td><div class="row"><button class="sm secondary" data-toggle>' +
+            (v.isAvailable ? 'Rendre indispo.' : 'Rendre dispo.') +
+            '</button></div><div class="error" data-err></div></td>';
+        const errEl = tr.querySelector('[data-err]');
+        tr.querySelector('[data-toggle]').onclick = () => guardRental(errEl, () =>
+          api('/rentals/vehicles/' + v.id, {
+            method: 'PATCH',
+            body: JSON.stringify({ isAvailable: !v.isAvailable }),
+          }));
+        body.appendChild(tr);
+      }
+    }
+
+    async function loadBookings() {
+      const bookings = await api('/rentals/bookings/all');
+      const body = document.getElementById('bookingBody');
+      body.innerHTML = '';
+      if (!bookings.length) {
+        body.innerHTML = '<tr><td colspan="5" class="muted">Aucune réservation.</td></tr>';
+      }
+      for (const b of bookings) {
+        const tr = document.createElement('tr');
+        const cls = b.status === 'completed' ? 'green'
+          : (b.status === 'cancelled' || b.status === 'no_driver') ? 'red' : '';
+        tr.innerHTML =
+          '<td>' + escapeHtml(b.vehicleName) + '</td>' +
+          '<td>' + escapeHtml(b.startDate) + ' → ' + escapeHtml(b.endDate) + '</td>' +
+          '<td>' + b.days + '</td>' +
+          '<td>' + Number(b.totalAmount).toLocaleString('fr-FR') + ' FCFA</td>' +
+          '<td><span class="badge ' + cls + '">' +
+            (RENTAL_STATUS_LABELS[b.status] || b.status) + '</span></td>';
+        body.appendChild(tr);
+      }
+    }
+
+    async function createVehicle() {
+      setError('rvError', '');
+      const name = document.getElementById('rvName').value.trim();
+      const category = document.getElementById('rvCategory').value;
+      const dailyPrice = parseInt(document.getElementById('rvPrice').value, 10);
+      const quantity = parseInt(document.getElementById('rvQty').value, 10);
+      const description = document.getElementById('rvDesc').value.trim();
+      if (!name) return setError('rvError', 'Nom requis.');
+      if (!dailyPrice || dailyPrice < 1) return setError('rvError', 'Prix par jour invalide.');
+      if (!quantity || quantity < 1) return setError('rvError', 'Nombre de véhicules invalide.');
+      try {
+        await api('/rentals/vehicles', {
+          method: 'POST',
+          body: JSON.stringify({
+            name, category, dailyPrice, quantity,
+            description: description || undefined,
+          }),
+        });
+        ['rvName', 'rvPrice', 'rvDesc'].forEach((id) =>
+          (document.getElementById(id).value = ''));
+        document.getElementById('rvQty').value = '1';
+        await loadVehicles();
+      } catch (e) {
+        setError('rvError', e.message);
+      }
+    }
+
+    async function guardRental(errEl, fn) {
+      errEl.textContent = '';
+      try {
+        await fn();
+        await loadRental();
+      } catch (e) {
+        errEl.textContent = e.message;
+      }
+    }
+
+    // --- Merchant (Commerces) ---
+    const MERCHANT_TYPE_LABELS = { store: 'Boutique', restaurant: 'Restaurant' };
+    const MERCHANT_STATUS_LABELS = { pending: 'En attente', active: 'Actif', suspended: 'Suspendu' };
+
+    async function loadMerchants() {
+      setError('merchantError', '');
+      try {
+        const merchants = await api('/merchants');
+        const body = document.getElementById('merchantBody');
+        body.innerHTML = '';
+        if (!merchants.length) {
+          body.innerHTML = '<tr><td colspan="5" class="muted">Aucun commerce.</td></tr>';
+        }
+        for (const m of merchants) {
+          const tr = document.createElement('tr');
+          const cls = m.status === 'active' ? 'green' : m.status === 'suspended' ? 'red' : '';
+          const status = '<span class="badge ' + cls + '">' +
+            (MERCHANT_STATUS_LABELS[m.status] || m.status) + '</span>';
+          const actions = m.status === 'active'
+            ? '<button class="sm red" data-status="suspended">Suspendre</button>'
+            : '<button class="sm green" data-status="active">Activer</button>';
+          tr.innerHTML =
+            '<td>' + escapeHtml(m.name) + '</td>' +
+            '<td>' + (MERCHANT_TYPE_LABELS[m.type] || m.type) + '</td>' +
+            '<td>' + escapeHtml(m.address || '—') + '</td>' +
+            '<td>' + status + '</td>' +
+            '<td><div class="row">' + actions + '</div><div class="error" data-err></div></td>';
+          const errEl = tr.querySelector('[data-err]');
+          tr.querySelector('[data-status]').onclick = (ev) => guardMerchant(errEl, () =>
+            api('/merchants/' + m.id, {
+              method: 'PATCH',
+              body: JSON.stringify({ status: ev.target.dataset.status }),
+            }));
+          body.appendChild(tr);
+        }
+      } catch (e) {
+        if (e.message.includes('401') || e.message.includes('403')) return logout();
+        setError('merchantError', e.message);
+      }
+    }
+
+    async function createMerchant() {
+      setError('mError', '');
+      const name = document.getElementById('mName').value.trim();
+      const type = document.getElementById('mType').value;
+      const ownerUserId = document.getElementById('mOwner').value.trim();
+      const phone = document.getElementById('mPhone').value.trim();
+      const address = document.getElementById('mAddress').value.trim();
+      const latRaw = document.getElementById('mLat').value.trim();
+      const lngRaw = document.getElementById('mLng').value.trim();
+      if (!name) return setError('mError', 'Nom du commerce requis.');
+      try {
+        await api('/merchants', {
+          method: 'POST',
+          body: JSON.stringify({
+            name, type,
+            ownerUserId: ownerUserId || undefined,
+            phone: phone || undefined,
+            address: address || undefined,
+            lat: latRaw === '' ? undefined : parseFloat(latRaw),
+            lng: lngRaw === '' ? undefined : parseFloat(lngRaw),
+          }),
+        });
+        ['mName', 'mOwner', 'mPhone', 'mAddress', 'mLat', 'mLng'].forEach((id) =>
+          (document.getElementById(id).value = ''));
+        await loadMerchants();
+      } catch (e) {
+        setError('mError', e.message);
+      }
+    }
+
+    async function guardMerchant(errEl, fn) {
+      errEl.textContent = '';
+      try {
+        await fn();
+        await loadMerchants();
+      } catch (e) {
+        errEl.textContent = e.message;
+      }
+    }
+
+    // --- Helpers ---
+    function openLightbox(url) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightbox').classList.remove('hidden');
+    }
+    function closeLightbox() {
+      document.getElementById('lightbox').classList.add('hidden');
+    }
+    function revokeUrls() {
+      while (objectUrls.length) URL.revokeObjectURL(objectUrls.pop());
+    }
+    function setError(id, msg) {
+      document.getElementById(id).textContent = msg;
+    }
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, (c) =>
+        ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // Auto-enter dashboard if a token is already stored.
+    if (token) showDashboard();
+  </script>
+</body>
+</html>
