@@ -7,16 +7,20 @@ export default () => {
     env,
     port: parseInt(process.env.PORT ?? '3000', 10),
     database: {
+      url: process.env.DATABASE_URL ?? '',
       host: process.env.DB_HOST ?? 'localhost',
       port: parseInt(process.env.DB_PORT ?? '5432', 10),
       user: process.env.DB_USER ?? 'vts',
       password: process.env.DB_PASSWORD ?? 'vts',
       name: process.env.DB_NAME ?? 'vts',
       synchronize: (process.env.DB_SYNCHRONIZE ?? synchronizeDefault) === 'true',
+      ssl: (process.env.DB_SSL ?? 'false') === 'true',
     },
     redis: {
+      url: process.env.REDIS_URL ?? '',
       host: process.env.REDIS_HOST ?? 'localhost',
       port: parseInt(process.env.REDIS_PORT ?? '6379', 10),
+      password: process.env.REDIS_PASSWORD ?? '',
     },
     jwt: {
       accessSecret: process.env.JWT_ACCESS_SECRET ?? 'change_me_access',
