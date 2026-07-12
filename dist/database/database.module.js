@@ -10,6 +10,7 @@ exports.DatabaseModule = void 0;
 const common_1 = require("@nestjs/common");
 const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
+const path_1 = require("path");
 let DatabaseModule = class DatabaseModule {
 };
 exports.DatabaseModule = DatabaseModule;
@@ -19,16 +20,29 @@ exports.DatabaseModule = DatabaseModule = __decorate([
             typeorm_1.TypeOrmModule.forRootAsync({
                 imports: [config_1.ConfigModule],
                 inject: [config_1.ConfigService],
-                useFactory: (config) => ({
-                    type: 'postgres',
-                    host: config.get('database.host'),
-                    port: config.get('database.port'),
-                    username: config.get('database.user'),
-                    password: config.get('database.password'),
-                    database: config.get('database.name'),
-                    autoLoadEntities: true,
-                    synchronize: config.get('database.synchronize'),
-                }),
+                useFactory: (config) => {
+                    const url = config.get('database.url');
+                    const ssl = config.get('database.ssl')
+                        ? { rejectUnauthorized: false }
+                        : false;
+                    return {
+                        type: 'postgres',
+                        ...(url
+                            ? { url }
+                            : {
+                                host: config.get('database.host'),
+                                port: config.get('database.port'),
+                                username: config.get('database.user'),
+                                password: config.get('database.password'),
+                                database: config.get('database.name'),
+                            }),
+                        ssl,
+                        autoLoadEntities: true,
+                        synchronize: config.get('database.synchronize'),
+                        migrations: [(0, path_1.join)(__dirname, 'migrations/*{.ts,.js}')],
+                        migrationsRun: config.get('database.migrationsRun'),
+                    };
+                },
             }),
         ],
     })

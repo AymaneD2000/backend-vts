@@ -60,7 +60,7 @@ export declare class KycController {
     submit(userId: string): Promise<import("../users/entities/driver-profile.entity").DriverProfile>;
     listPending(): Promise<{
         userId: string;
-        phone: string;
+        phone: string | undefined;
         fullName: string | null;
         vehicleType: import("../users/entities/driver-profile.entity").VehicleType | null;
         vehiclePlate: string | null;

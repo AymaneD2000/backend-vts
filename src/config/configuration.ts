@@ -14,6 +14,7 @@ export default () => {
       password: process.env.DB_PASSWORD ?? 'vts',
       name: process.env.DB_NAME ?? 'vts',
       synchronize: (process.env.DB_SYNCHRONIZE ?? synchronizeDefault) === 'true',
+      migrationsRun: (process.env.DB_MIGRATIONS_RUN ?? 'false') === 'true',
       ssl: (process.env.DB_SSL ?? 'false') === 'true',
     },
     redis: {
@@ -31,7 +32,21 @@ export default () => {
     otp: {
       ttlSeconds: parseInt(process.env.OTP_TTL_SECONDS ?? '300', 10),
       length: parseInt(process.env.OTP_LENGTH ?? '6', 10),
+      cooldownSeconds: parseInt(
+        process.env.OTP_COOLDOWN_SECONDS ?? '60',
+        10,
+      ),
+      maxAttempts: parseInt(process.env.OTP_MAX_ATTEMPTS ?? '5', 10),
       smsProvider: process.env.SMS_PROVIDER ?? 'console',
+    },
+    email: {
+      provider: process.env.EMAIL_PROVIDER ?? 'console',
+      host: process.env.SMTP_HOST ?? '',
+      port: parseInt(process.env.SMTP_PORT ?? '587', 10),
+      secure: (process.env.SMTP_SECURE ?? 'false') === 'true',
+      user: process.env.SMTP_USER ?? '',
+      password: process.env.SMTP_PASSWORD ?? '',
+      from: process.env.EMAIL_FROM ?? 'VTS Mali <no-reply@localhost>',
     },
     push: {
       provider: process.env.PUSH_PROVIDER ?? 'console',
@@ -45,6 +60,10 @@ export default () => {
         .split(',')
         .map((p) => p.trim())
         .filter((p) => p.length > 0),
+      emails: (process.env.ADMIN_EMAILS ?? '')
+        .split(',')
+        .map((email) => email.trim().toLowerCase())
+        .filter((email) => email.length > 0),
     },
     kyc: {
       uploadDir: process.env.KYC_UPLOAD_DIR ?? 'uploads/kyc',

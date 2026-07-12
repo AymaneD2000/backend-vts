@@ -11,4 +11,5 @@ export declare class MerchantsController {
     mine(userId: string): Promise<import("./entities/merchant.entity").Merchant[]>;
     createDelivery(userId: string, dto: CreateDeliveryDto): Promise<import("../rides/entities/ride.entity").Ride>;
     myDeliveries(userId: string): Promise<import("../rides/entities/ride.entity").Ride[]>;
+    dispatchDelivery(userId: string, id: string): Promise<import("../rides/entities/ride.entity").Ride>;
 }

@@ -54,4 +54,9 @@ __decorate([
     (0, class_validator_1.IsEnum)(ride_entity_1.PaymentMethod),
     __metadata("design:type", String)
 ], CreateDeliveryDto.prototype, "paymentMethod", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsDateString)(),
+    __metadata("design:type", String)
+], CreateDeliveryDto.prototype, "scheduledAt", void 0);
 //# sourceMappingURL=create-delivery.dto.js.map

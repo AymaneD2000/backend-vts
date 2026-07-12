@@ -74,7 +74,7 @@ export declare class KycService {
     }[]>;
     listPending(): Promise<{
         userId: string;
-        phone: string;
+        phone: string | undefined;
         fullName: string | null;
         vehicleType: import("../users/entities/driver-profile.entity").VehicleType | null;
         vehiclePlate: string | null;

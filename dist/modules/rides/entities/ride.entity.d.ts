@@ -60,6 +60,8 @@ export declare class Ride {
     acceptedAt?: Date;
     startedAt?: Date;
     completedAt?: Date;
+    scheduledAt?: Date;
+    dispatchedAt?: Date;
     cancelledAt?: Date;
     cancelledBy?: CancelledBy;
     cancelReason?: CancelReason;

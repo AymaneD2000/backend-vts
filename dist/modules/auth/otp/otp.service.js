@@ -55,37 +55,76 @@ const argon2 = __importStar(require("argon2"));
 const crypto_1 = require("crypto");
 const ioredis_1 = __importDefault(require("ioredis"));
 const redis_module_1 = require("../../../redis/redis.module");
+const email_service_1 = require("../email/email.service");
 const sms_service_1 = require("../sms/sms.service");
 let OtpService = class OtpService {
-    constructor(redis, config, sms) {
+    constructor(redis, config, sms, email) {
         this.redis = redis;
         this.config = config;
         this.sms = sms;
+        this.email = email;
     }
-    key(phone) {
-        return `otp:${phone}`;
+    key(identifier, channel) {
+        return channel === 'phone'
+            ? `otp:${identifier}`
+            : `otp:email:${identifier}`;
+    }
+    cooldownKey(identifier, channel) {
+        return `otp:cooldown:${channel}:${identifier}`;
+    }
+    attemptsKey(identifier, channel) {
+        return `otp:attempts:${channel}:${identifier}`;
     }
     generateCode() {
         const length = this.config.get('otp.length') ?? 6;
         const max = 10 ** length;
         return (0, crypto_1.randomInt)(0, max).toString().padStart(length, '0');
     }
-    async requestOtp(phone) {
+    async requestOtp(identifier, channel) {
         const code = this.generateCode();
         const ttl = this.config.get('otp.ttlSeconds') ?? 300;
+        const cooldown = this.config.get('otp.cooldownSeconds') ?? 60;
+        const allowed = await this.redis.set(this.cooldownKey(identifier, channel), '1', 'EX', cooldown, 'NX');
+        if (!allowed) {
+            throw new common_1.HttpException('Please wait before requesting another code', common_1.HttpStatus.TOO_MANY_REQUESTS);
+        }
         const hash = await argon2.hash(code);
-        await this.redis.set(this.key(phone), hash, 'EX', ttl);
-        await this.sms.send(phone, `Votre code VTS est: ${code}`);
+        const otpKey = this.key(identifier, channel);
+        await this.redis.set(otpKey, hash, 'EX', ttl);
+        await this.redis.del(this.attemptsKey(identifier, channel));
+        try {
+            if (channel === 'email') {
+                await this.email.sendOtp(identifier, code);
+            }
+            else {
+                await this.sms.send(identifier, `Votre code VTS est: ${code}`);
+            }
+        }
+        catch (error) {
+            await this.redis.del(otpKey, this.cooldownKey(identifier, channel));
+            throw error;
+        }
     }
-    async verifyOtp(phone, code) {
-        const hash = await this.redis.get(this.key(phone));
+    async verifyOtp(identifier, channel, code) {
+        const otpKey = this.key(identifier, channel);
+        const attemptsKey = this.attemptsKey(identifier, channel);
+        const hash = await this.redis.get(otpKey);
         if (!hash)
             return false;
         const valid = await argon2.verify(hash, code);
         if (valid) {
-            await this.redis.del(this.key(phone));
+            await this.redis.del(otpKey, attemptsKey);
+            return true;
         }
-        return valid;
+        const attempts = await this.redis.incr(attemptsKey);
+        if (attempts === 1) {
+            const ttl = this.config.get('otp.ttlSeconds') ?? 300;
+            await this.redis.expire(attemptsKey, ttl);
+        }
+        const maxAttempts = this.config.get('otp.maxAttempts') ?? 5;
+        if (attempts >= maxAttempts)
+            await this.redis.del(otpKey, attemptsKey);
+        return false;
     }
 };
 exports.OtpService = OtpService;
@@ -94,6 +133,7 @@ exports.OtpService = OtpService = __decorate([
     __param(0, (0, common_1.Inject)(redis_module_1.REDIS_CLIENT)),
     __metadata("design:paramtypes", [ioredis_1.default,
         config_1.ConfigService,
-        sms_service_1.SmsService])
+        sms_service_1.SmsService,
+        email_service_1.EmailService])
 ], OtpService);
 //# sourceMappingURL=otp.service.js.map

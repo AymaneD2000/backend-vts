@@ -3,11 +3,14 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
+  OnModuleDestroy,
+  OnModuleInit,
   NotFoundException,
 } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Repository } from 'typeorm';
+import { In, IsNull, LessThanOrEqual, Repository } from 'typeorm';
 import { haversineMeters } from '../../common/geo';
 import { ServiceType } from '../../common/service-type';
 import { TrustLevel } from '../../common/trust-level';
@@ -43,7 +46,10 @@ const ACTIVE_STATUSES = [
 const DISPATCH_RADIUS_M = 5000;
 
 @Injectable()
-export class RidesService {
+export class RidesService implements OnModuleInit, OnModuleDestroy {
+  private readonly logger = new Logger(RidesService.name);
+  private scheduledDispatchTimer?: NodeJS.Timeout;
+
   constructor(
     @InjectRepository(Ride) private readonly rides: Repository<Ride>,
     private readonly pricing: PricingService,
@@ -53,6 +59,25 @@ export class RidesService {
     private readonly trust: TrustService,
     private readonly events: EventEmitter2,
   ) {}
+
+  onModuleInit(): void {
+    this.scheduledDispatchTimer = setInterval(() => {
+      this.runScheduledDispatch();
+    }, 30_000);
+    this.scheduledDispatchTimer.unref();
+    this.runScheduledDispatch();
+  }
+
+  onModuleDestroy(): void {
+    if (this.scheduledDispatchTimer) clearInterval(this.scheduledDispatchTimer);
+  }
+
+  private runScheduledDispatch(): void {
+    void this.dispatchDueScheduled().catch((error: unknown) => {
+      const trace = error instanceof Error ? error.stack : String(error);
+      this.logger.error('Scheduled delivery dispatch failed', trace);
+    });
+  }
 
   private emit(ride: Ride): void {
     this.events.emit(RIDE_UPDATED, { ride });
@@ -74,7 +99,13 @@ export class RidesService {
   async request(
     clientId: string,
     dto: RequestRideDto,
-    extra?: { merchantId?: string },
+    extra?: {
+      merchantId?: string;
+      scheduledAt?: Date;
+      recipientName?: string;
+      recipientPhone?: string;
+      parcelDescription?: string;
+    },
   ): Promise<Ride> {
     const pickup = { lat: dto.pickup.lat, lng: dto.pickup.lng };
     const dropoff = { lat: dto.dropoff.lat, lng: dto.dropoff.lng };
@@ -90,6 +121,11 @@ export class RidesService {
     const requiredTrustLevel = isParcel
       ? await this.trust.getRequiredTrustLevel(dto.declaredValue!)
       : undefined;
+    const now = new Date();
+    const scheduledAt = extra?.scheduledAt;
+    if (scheduledAt && scheduledAt.getTime() <= now.getTime()) {
+      throw new BadRequestException('Scheduled time must be in the future');
+    }
 
     // Pending dispatch: the ride stays unassigned and is broadcast to nearby
     // drivers. It also remains claimable by any driver who comes online later,
@@ -112,27 +148,81 @@ export class RidesService {
       paymentMethod: dto.paymentMethod ?? PaymentMethod.CASH,
       paymentStatus: PaymentStatus.PENDING,
       declaredValue: isParcel ? dto.declaredValue : undefined,
-      parcelDescription: isParcel ? dto.parcelDescription : undefined,
-      recipientName: isParcel ? dto.recipientName : undefined,
-      recipientPhone: isParcel ? dto.recipientPhone : undefined,
+      parcelDescription: isParcel
+        ? dto.parcelDescription
+        : extra?.parcelDescription,
+      recipientName: isParcel ? dto.recipientName : extra?.recipientName,
+      recipientPhone: isParcel ? dto.recipientPhone : extra?.recipientPhone,
       parcelSize: isParcel ? dto.parcelSize : undefined,
       requiredTrustLevel,
       merchantId: extra?.merchantId,
+      scheduledAt,
+      dispatchedAt: scheduledAt ? undefined : now,
     });
 
     const saved = await this.rides.save(ride);
     this.emit(saved);
 
-    const candidates = await this.matching.findCandidates(
-      dto.serviceType,
-      pickup,
-    );
+    if (!scheduledAt) await this.offerRide(saved);
+    return saved;
+  }
+
+  private async offerRide(ride: Ride): Promise<void> {
+    const candidates = await this.matching.findCandidates(ride.serviceType, {
+      lat: ride.pickupLat,
+      lng: ride.pickupLng,
+    });
     const offered = await this.eligibleDriverIds(
       candidates.map((c) => c.userId),
-      requiredTrustLevel,
+      ride.requiredTrustLevel ?? undefined,
     );
-    this.offerToDrivers(saved, offered);
-    return saved;
+    this.offerToDrivers(ride, offered);
+  }
+
+  private async dispatchDueScheduled(): Promise<void> {
+    const due = await this.rides.find({
+      where: {
+        status: RideStatus.REQUESTED,
+        scheduledAt: LessThanOrEqual(new Date()),
+        dispatchedAt: IsNull(),
+      },
+      order: { scheduledAt: 'ASC' },
+      take: 50,
+    });
+    for (const ride of due) {
+      await this.claimAndDispatchScheduled(ride);
+    }
+  }
+
+  async dispatchScheduled(rideId: string): Promise<Ride> {
+    const ride = await this.getOrThrow(rideId);
+    if (!ride.merchantId || !ride.scheduledAt) {
+      throw new BadRequestException('Delivery is not scheduled');
+    }
+    if (ride.status !== RideStatus.REQUESTED || ride.driverId) {
+      throw new BadRequestException(`Cannot dispatch a ${ride.status} delivery`);
+    }
+    if (ride.dispatchedAt) {
+      throw new ConflictException('Delivery has already been dispatched');
+    }
+    return this.claimAndDispatchScheduled(ride);
+  }
+
+  private async claimAndDispatchScheduled(ride: Ride): Promise<Ride> {
+    const dispatchedAt = new Date();
+    const result = await this.rides.update(
+      {
+        id: ride.id,
+        status: RideStatus.REQUESTED,
+        dispatchedAt: IsNull(),
+      },
+      { dispatchedAt },
+    );
+    if (result.affected === 0) return this.getOrThrow(ride.id);
+    const dispatched = await this.getOrThrow(ride.id);
+    this.emit(dispatched);
+    await this.offerRide(dispatched);
+    return dispatched;
   }
 
   // Restrict a set of candidate drivers to those meeting a parcel's required
@@ -153,6 +243,9 @@ export class RidesService {
     // race to win the ride.
     const pending = await this.rides.findOne({ where: { id: rideId } });
     if (!pending) throw new NotFoundException('Ride not found');
+    if (pending.scheduledAt && !pending.dispatchedAt) {
+      throw new ConflictException('Ride is not available yet');
+    }
     if (
       pending.requiredTrustLevel !== null &&
       pending.requiredTrustLevel !== undefined &&
@@ -215,6 +308,7 @@ export class RidesService {
     });
     const pos = { lat: event.lat, lng: event.lng };
     for (const ride of pending) {
+      if (ride.scheduledAt && !ride.dispatchedAt) continue;
       if (this.matching.vehicleTypeFor(ride.serviceType) !== event.vehicleType) {
         continue;
       }
@@ -275,7 +369,10 @@ export class RidesService {
     if (!ACTIVE_STATUSES.includes(ride.status)) {
       throw new BadRequestException(`Cannot cancel a ${ride.status} ride`);
     }
-    const wasPending = ride.status === RideStatus.REQUESTED && !ride.driverId;
+    const wasPending =
+      ride.status === RideStatus.REQUESTED &&
+      !ride.driverId &&
+      (!ride.scheduledAt || !!ride.dispatchedAt);
     ride.status = RideStatus.CANCELLED;
     ride.cancelledAt = new Date();
     ride.cancelledBy =
@@ -320,6 +417,14 @@ export class RidesService {
       order: { createdAt: 'DESC' },
       take: 100,
     });
+  }
+
+  async findMerchantDelivery(rideId: string): Promise<Ride> {
+    const ride = await this.rides.findOne({
+      where: { id: rideId, serviceType: ServiceType.MERCHANT_DELIVERY },
+    });
+    if (!ride?.merchantId) throw new NotFoundException('Delivery not found');
+    return ride;
   }
 
   getActiveRideForDriver(driverId: string): Promise<Ride | null> {

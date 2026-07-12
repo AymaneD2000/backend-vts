@@ -45,6 +45,9 @@ let MerchantsController = class MerchantsController {
     myDeliveries(userId) {
         return this.merchants.myDeliveries(userId);
     }
+    dispatchDelivery(userId, id) {
+        return this.merchants.dispatchDelivery(userId, id);
+    }
 };
 exports.MerchantsController = MerchantsController;
 __decorate([
@@ -96,6 +99,14 @@ __decorate([
     __metadata("design:paramtypes", [String]),
     __metadata("design:returntype", void 0)
 ], MerchantsController.prototype, "myDeliveries", null);
+__decorate([
+    (0, common_1.Post)('mine/deliveries/:id/dispatch'),
+    __param(0, (0, current_user_decorator_1.CurrentUser)('userId')),
+    __param(1, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], MerchantsController.prototype, "dispatchDelivery", null);
 exports.MerchantsController = MerchantsController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('merchants'),

@@ -24,6 +24,9 @@ let UsersService = class UsersService {
     findByPhone(phone) {
         return this.users.findOne({ where: { phone } });
     }
+    findByEmail(email) {
+        return this.users.findOne({ where: { email: this.normalizeEmail(email) } });
+    }
     findById(id) {
         return this.users.findOne({ where: { id } });
     }
@@ -37,8 +40,25 @@ let UsersService = class UsersService {
             return existing;
         return this.createWithPhone(phone);
     }
+    async createWithEmail(email, roles = [user_entity_1.UserRole.CLIENT]) {
+        const user = this.users.create({
+            email: this.normalizeEmail(email),
+            roles,
+        });
+        return this.users.save(user);
+    }
+    async findOrCreateByEmail(email) {
+        const normalized = this.normalizeEmail(email);
+        const existing = await this.findByEmail(normalized);
+        if (existing)
+            return existing;
+        return this.createWithEmail(normalized);
+    }
     async markPhoneVerified(id) {
         await this.users.update({ id }, { phoneVerified: true });
+    }
+    async markEmailVerified(id) {
+        await this.users.update({ id }, { emailVerified: true });
     }
     async addRole(user, role) {
         if (user.roles.includes(role))
@@ -57,6 +77,9 @@ let UsersService = class UsersService {
         if (!user)
             throw new common_1.NotFoundException('User not found');
         return user.refreshTokenHash ?? null;
+    }
+    normalizeEmail(email) {
+        return email.trim().toLowerCase();
     }
 };
 exports.UsersService = UsersService;

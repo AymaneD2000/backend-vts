@@ -87,12 +87,27 @@ export class MerchantsService {
       },
       paymentMethod: dto.paymentMethod,
     };
-    return this.rides.request(userId, rideDto, { merchantId: merchant.id });
+    return this.rides.request(userId, rideDto, {
+      merchantId: merchant.id,
+      scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
+      recipientName: dto.customerName,
+      recipientPhone: dto.customerPhone,
+      parcelDescription: dto.note,
+    });
   }
 
   async myDeliveries(userId: string): Promise<Ride[]> {
     const mine = await this.myMerchants(userId);
     return this.rides.findByMerchantIds(mine.map((m) => m.id));
+  }
+
+  async dispatchDelivery(userId: string, rideId: string): Promise<Ride> {
+    const delivery = await this.rides.findMerchantDelivery(rideId);
+    const merchant = await this.merchants.findOne({
+      where: { id: delivery.merchantId, ownerUserId: userId },
+    });
+    if (!merchant) throw new NotFoundException('Delivery not found');
+    return this.rides.dispatchScheduled(rideId);
   }
 
   // Ensure the owning user carries the `merchant` role so they can reach the

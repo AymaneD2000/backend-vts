@@ -16,16 +16,28 @@ class RequestOtpDto {
 }
 exports.RequestOtpDto = RequestOtpDto;
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.Matches)(PHONE_REGEX, { message: 'phone must be a valid Mali number' }),
     __metadata("design:type", String)
 ], RequestOtpDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], RequestOtpDto.prototype, "email", void 0);
 class VerifyOtpDto {
 }
 exports.VerifyOtpDto = VerifyOtpDto;
 __decorate([
+    (0, class_validator_1.IsOptional)(),
     (0, class_validator_1.Matches)(PHONE_REGEX, { message: 'phone must be a valid Mali number' }),
     __metadata("design:type", String)
 ], VerifyOtpDto.prototype, "phone", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsEmail)(),
+    __metadata("design:type", String)
+], VerifyOtpDto.prototype, "email", void 0);
 __decorate([
     (0, class_validator_1.IsString)(),
     (0, class_validator_1.Length)(4, 8),

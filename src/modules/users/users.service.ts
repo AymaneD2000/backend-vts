@@ -14,6 +14,10 @@ export class UsersService {
     return this.users.findOne({ where: { phone } });
   }
 
+  findByEmail(email: string): Promise<User | null> {
+    return this.users.findOne({ where: { email: this.normalizeEmail(email) } });
+  }
+
   findById(id: string): Promise<User | null> {
     return this.users.findOne({ where: { id } });
   }
@@ -29,8 +33,30 @@ export class UsersService {
     return this.createWithPhone(phone);
   }
 
+  async createWithEmail(
+    email: string,
+    roles: UserRole[] = [UserRole.CLIENT],
+  ): Promise<User> {
+    const user = this.users.create({
+      email: this.normalizeEmail(email),
+      roles,
+    });
+    return this.users.save(user);
+  }
+
+  async findOrCreateByEmail(email: string): Promise<User> {
+    const normalized = this.normalizeEmail(email);
+    const existing = await this.findByEmail(normalized);
+    if (existing) return existing;
+    return this.createWithEmail(normalized);
+  }
+
   async markPhoneVerified(id: string): Promise<void> {
     await this.users.update({ id }, { phoneVerified: true });
+  }
+
+  async markEmailVerified(id: string): Promise<void> {
+    await this.users.update({ id }, { emailVerified: true });
   }
 
   // Adds a role to a user if missing. Returns the (possibly) updated user.
@@ -51,5 +77,9 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('User not found');
     return user.refreshTokenHash ?? null;
+  }
+
+  private normalizeEmail(email: string): string {
+    return email.trim().toLowerCase();
   }
 }

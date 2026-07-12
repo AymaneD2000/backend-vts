@@ -17,5 +17,6 @@ export declare class MerchantsService {
     myMerchants(userId: string): Promise<Merchant[]>;
     createDelivery(userId: string, dto: CreateDeliveryDto): Promise<Ride>;
     myDeliveries(userId: string): Promise<Ride[]>;
+    dispatchDelivery(userId: string, rideId: string): Promise<Ride>;
     private grantMerchantRole;
 }

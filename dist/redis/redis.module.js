@@ -24,12 +24,26 @@ exports.RedisModule = RedisModule = __decorate([
             {
                 provide: exports.REDIS_CLIENT,
                 inject: [config_1.ConfigService],
-                useFactory: (config) => new ioredis_1.default({
-                    host: config.get('redis.host'),
-                    port: config.get('redis.port'),
-                    lazyConnect: false,
-                    maxRetriesPerRequest: 3,
-                }),
+                useFactory: (config) => {
+                    const logger = new common_1.Logger('Redis');
+                    const url = config.get('redis.url');
+                    const options = {
+                        lazyConnect: false,
+                        maxRetriesPerRequest: 3,
+                    };
+                    const client = url
+                        ? new ioredis_1.default(url, options)
+                        : new ioredis_1.default({
+                            ...options,
+                            host: config.get('redis.host'),
+                            port: config.get('redis.port'),
+                            password: config.get('redis.password') || undefined,
+                        });
+                    client.on('error', (err) => {
+                        logger.error(`Redis connection failed: ${err.message}`);
+                    });
+                    return client;
+                },
             },
         ],
         exports: [exports.REDIS_CLIENT],

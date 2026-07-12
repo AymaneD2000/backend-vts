@@ -64,4 +64,12 @@ export class MerchantsController {
   myDeliveries(@CurrentUser('userId') userId: string) {
     return this.merchants.myDeliveries(userId);
   }
+
+  @Post('mine/deliveries/:id/dispatch')
+  dispatchDelivery(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.merchants.dispatchDelivery(userId, id);
+  }
 }

@@ -11,11 +11,19 @@ import { DataSource } from 'typeorm';
  */
 export default new DataSource({
   type: 'postgres',
-  host: process.env.DB_HOST ?? 'localhost',
-  port: parseInt(process.env.DB_PORT ?? '5432', 10),
-  username: process.env.DB_USER ?? 'vts',
-  password: process.env.DB_PASSWORD ?? 'vts',
-  database: process.env.DB_NAME ?? 'vts',
+  ...(process.env.DATABASE_URL
+    ? { url: process.env.DATABASE_URL }
+    : {
+        host: process.env.DB_HOST ?? 'localhost',
+        port: parseInt(process.env.DB_PORT ?? '5432', 10),
+        username: process.env.DB_USER ?? 'vts',
+        password: process.env.DB_PASSWORD ?? 'vts',
+        database: process.env.DB_NAME ?? 'vts',
+      }),
+  ssl:
+    (process.env.DB_SSL ?? 'false') === 'true'
+      ? { rejectUnauthorized: false }
+      : false,
   entities: ['src/**/*.entity.ts'],
   migrations: ['src/database/migrations/*.ts'],
   synchronize: false,

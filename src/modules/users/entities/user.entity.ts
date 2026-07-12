@@ -1,5 +1,6 @@
 import {
   Column,
+  Check,
   CreateDateColumn,
   Entity,
   Index,
@@ -22,15 +23,18 @@ export enum UserRole {
 }
 
 @Entity('users')
+@Check('CHK_users_identity', '"phone" IS NOT NULL OR "email" IS NOT NULL')
 export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // Phone is the primary identity in the Mali context (OTP login).
+  // Users can authenticate with either phone or email. Both are normalized
+  // before persistence and at least one is required by CHK_users_identity.
   @Index({ unique: true })
-  @Column({ length: 20 })
-  phone: string;
+  @Column({ length: 20, nullable: true })
+  phone?: string;
 
+  @Index('IDX_users_email_unique', { unique: true })
   @Column({ nullable: true })
   email?: string;
 
@@ -47,6 +51,9 @@ export class User {
 
   @Column({ name: 'phone_verified', default: false })
   phoneVerified: boolean;
+
+  @Column({ name: 'email_verified', default: false })
+  emailVerified: boolean;
 
   // Optional password (argon2 hash). Many users will only use OTP.
   @Column({ name: 'password_hash', nullable: true, select: false })

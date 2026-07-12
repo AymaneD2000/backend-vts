@@ -12,9 +12,10 @@ export declare class AuthService {
     private readonly jwt;
     private readonly config;
     constructor(users: UsersService, otp: OtpService, jwt: JwtService, config: ConfigService);
-    requestOtp(phone: string): Promise<void>;
-    verifyOtp(phone: string, code: string): Promise<AuthTokens>;
+    requestOtp(phone?: string, email?: string): Promise<void>;
+    verifyOtp(phone: string | undefined, email: string | undefined, code: string): Promise<AuthTokens>;
     refresh(refreshToken: string): Promise<AuthTokens>;
     logout(userId: string): Promise<void>;
     private issueTokens;
+    private resolveIdentity;
 }

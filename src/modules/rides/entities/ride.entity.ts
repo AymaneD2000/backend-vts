@@ -141,6 +141,15 @@ export class Ride {
   @Column({ name: 'completed_at', type: 'timestamptz', nullable: true })
   completedAt?: Date;
 
+  // Merchant deliveries can be prepared in advance. They stay invisible to
+  // drivers until scheduled_at is reached or the merchant launches them.
+  @Index()
+  @Column({ name: 'scheduled_at', type: 'timestamptz', nullable: true })
+  scheduledAt?: Date;
+
+  @Column({ name: 'dispatched_at', type: 'timestamptz', nullable: true })
+  dispatchedAt?: Date;
+
   @Column({ name: 'cancelled_at', type: 'timestamptz', nullable: true })
   cancelledAt?: Date;
 

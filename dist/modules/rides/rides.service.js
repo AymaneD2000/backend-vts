@@ -11,6 +11,7 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 var __param = (this && this.__param) || function (paramIndex, decorator) {
     return function (target, key) { decorator(target, key, paramIndex); }
 };
+var RidesService_1;
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.RidesService = void 0;
 const common_1 = require("@nestjs/common");
@@ -33,7 +34,7 @@ const ACTIVE_STATUSES = [
     ride_entity_1.RideStatus.IN_PROGRESS,
 ];
 const DISPATCH_RADIUS_M = 5000;
-let RidesService = class RidesService {
+let RidesService = RidesService_1 = class RidesService {
     constructor(rides, pricing, matching, drivers, routing, trust, events) {
         this.rides = rides;
         this.pricing = pricing;
@@ -42,6 +43,24 @@ let RidesService = class RidesService {
         this.routing = routing;
         this.trust = trust;
         this.events = events;
+        this.logger = new common_1.Logger(RidesService_1.name);
+    }
+    onModuleInit() {
+        this.scheduledDispatchTimer = setInterval(() => {
+            this.runScheduledDispatch();
+        }, 30_000);
+        this.scheduledDispatchTimer.unref();
+        this.runScheduledDispatch();
+    }
+    onModuleDestroy() {
+        if (this.scheduledDispatchTimer)
+            clearInterval(this.scheduledDispatchTimer);
+    }
+    runScheduledDispatch() {
+        void this.dispatchDueScheduled().catch((error) => {
+            const trace = error instanceof Error ? error.stack : String(error);
+            this.logger.error('Scheduled delivery dispatch failed', trace);
+        });
     }
     emit(ride) {
         this.events.emit(ride_events_1.RIDE_UPDATED, { ride });
@@ -65,6 +84,11 @@ let RidesService = class RidesService {
         const requiredTrustLevel = isParcel
             ? await this.trust.getRequiredTrustLevel(dto.declaredValue)
             : undefined;
+        const now = new Date();
+        const scheduledAt = extra?.scheduledAt;
+        if (scheduledAt && scheduledAt.getTime() <= now.getTime()) {
+            throw new common_1.BadRequestException('Scheduled time must be in the future');
+        }
         const ride = this.rides.create({
             serviceType: dto.serviceType,
             status: ride_entity_1.RideStatus.REQUESTED,
@@ -83,19 +107,71 @@ let RidesService = class RidesService {
             paymentMethod: dto.paymentMethod ?? ride_entity_1.PaymentMethod.CASH,
             paymentStatus: ride_entity_1.PaymentStatus.PENDING,
             declaredValue: isParcel ? dto.declaredValue : undefined,
-            parcelDescription: isParcel ? dto.parcelDescription : undefined,
-            recipientName: isParcel ? dto.recipientName : undefined,
-            recipientPhone: isParcel ? dto.recipientPhone : undefined,
+            parcelDescription: isParcel
+                ? dto.parcelDescription
+                : extra?.parcelDescription,
+            recipientName: isParcel ? dto.recipientName : extra?.recipientName,
+            recipientPhone: isParcel ? dto.recipientPhone : extra?.recipientPhone,
             parcelSize: isParcel ? dto.parcelSize : undefined,
             requiredTrustLevel,
             merchantId: extra?.merchantId,
+            scheduledAt,
+            dispatchedAt: scheduledAt ? undefined : now,
         });
         const saved = await this.rides.save(ride);
         this.emit(saved);
-        const candidates = await this.matching.findCandidates(dto.serviceType, pickup);
-        const offered = await this.eligibleDriverIds(candidates.map((c) => c.userId), requiredTrustLevel);
-        this.offerToDrivers(saved, offered);
+        if (!scheduledAt)
+            await this.offerRide(saved);
         return saved;
+    }
+    async offerRide(ride) {
+        const candidates = await this.matching.findCandidates(ride.serviceType, {
+            lat: ride.pickupLat,
+            lng: ride.pickupLng,
+        });
+        const offered = await this.eligibleDriverIds(candidates.map((c) => c.userId), ride.requiredTrustLevel ?? undefined);
+        this.offerToDrivers(ride, offered);
+    }
+    async dispatchDueScheduled() {
+        const due = await this.rides.find({
+            where: {
+                status: ride_entity_1.RideStatus.REQUESTED,
+                scheduledAt: (0, typeorm_2.LessThanOrEqual)(new Date()),
+                dispatchedAt: (0, typeorm_2.IsNull)(),
+            },
+            order: { scheduledAt: 'ASC' },
+            take: 50,
+        });
+        for (const ride of due) {
+            await this.claimAndDispatchScheduled(ride);
+        }
+    }
+    async dispatchScheduled(rideId) {
+        const ride = await this.getOrThrow(rideId);
+        if (!ride.merchantId || !ride.scheduledAt) {
+            throw new common_1.BadRequestException('Delivery is not scheduled');
+        }
+        if (ride.status !== ride_entity_1.RideStatus.REQUESTED || ride.driverId) {
+            throw new common_1.BadRequestException(`Cannot dispatch a ${ride.status} delivery`);
+        }
+        if (ride.dispatchedAt) {
+            throw new common_1.ConflictException('Delivery has already been dispatched');
+        }
+        return this.claimAndDispatchScheduled(ride);
+    }
+    async claimAndDispatchScheduled(ride) {
+        const dispatchedAt = new Date();
+        const result = await this.rides.update({
+            id: ride.id,
+            status: ride_entity_1.RideStatus.REQUESTED,
+            dispatchedAt: (0, typeorm_2.IsNull)(),
+        }, { dispatchedAt });
+        if (result.affected === 0)
+            return this.getOrThrow(ride.id);
+        const dispatched = await this.getOrThrow(ride.id);
+        this.emit(dispatched);
+        await this.offerRide(dispatched);
+        return dispatched;
     }
     eligibleDriverIds(driverIds, requiredTrustLevel) {
         if (requiredTrustLevel === undefined) {
@@ -107,6 +183,9 @@ let RidesService = class RidesService {
         const pending = await this.rides.findOne({ where: { id: rideId } });
         if (!pending)
             throw new common_1.NotFoundException('Ride not found');
+        if (pending.scheduledAt && !pending.dispatchedAt) {
+            throw new common_1.ConflictException('Ride is not available yet');
+        }
         if (pending.requiredTrustLevel !== null &&
             pending.requiredTrustLevel !== undefined &&
             pending.requiredTrustLevel > trust_level_1.TrustLevel.NONE) {
@@ -144,6 +223,8 @@ let RidesService = class RidesService {
         });
         const pos = { lat: event.lat, lng: event.lng };
         for (const ride of pending) {
+            if (ride.scheduledAt && !ride.dispatchedAt)
+                continue;
             if (this.matching.vehicleTypeFor(ride.serviceType) !== event.vehicleType) {
                 continue;
             }
@@ -194,7 +275,9 @@ let RidesService = class RidesService {
         if (!ACTIVE_STATUSES.includes(ride.status)) {
             throw new common_1.BadRequestException(`Cannot cancel a ${ride.status} ride`);
         }
-        const wasPending = ride.status === ride_entity_1.RideStatus.REQUESTED && !ride.driverId;
+        const wasPending = ride.status === ride_entity_1.RideStatus.REQUESTED &&
+            !ride.driverId &&
+            (!ride.scheduledAt || !!ride.dispatchedAt);
         ride.status = ride_entity_1.RideStatus.CANCELLED;
         ride.cancelledAt = new Date();
         ride.cancelledBy =
@@ -235,6 +318,14 @@ let RidesService = class RidesService {
             take: 100,
         });
     }
+    async findMerchantDelivery(rideId) {
+        const ride = await this.rides.findOne({
+            where: { id: rideId, serviceType: service_type_1.ServiceType.MERCHANT_DELIVERY },
+        });
+        if (!ride?.merchantId)
+            throw new common_1.NotFoundException('Delivery not found');
+        return ride;
+    }
     getActiveRideForDriver(driverId) {
         return this.rides.findOne({
             where: { driverId, status: (0, typeorm_2.In)(ACTIVE_STATUSES) },
@@ -260,7 +351,7 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", Promise)
 ], RidesService.prototype, "handleDriverOnline", null);
-exports.RidesService = RidesService = __decorate([
+exports.RidesService = RidesService = RidesService_1 = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(ride_entity_1.Ride)),
     __metadata("design:paramtypes", [typeorm_2.Repository,

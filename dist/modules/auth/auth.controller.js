@@ -22,11 +22,11 @@ let AuthController = class AuthController {
         this.auth = auth;
     }
     async requestOtp(dto) {
-        await this.auth.requestOtp(dto.phone);
+        await this.auth.requestOtp(dto.phone, dto.email);
         return { message: 'OTP sent' };
     }
     verifyOtp(dto) {
-        return this.auth.verifyOtp(dto.phone, dto.code);
+        return this.auth.verifyOtp(dto.phone, dto.email, dto.code);
     }
     refresh(dto) {
         return this.auth.refresh(dto.refreshToken);

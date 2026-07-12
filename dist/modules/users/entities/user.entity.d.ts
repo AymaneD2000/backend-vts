@@ -9,11 +9,12 @@ export declare enum UserRole {
 }
 export declare class User {
     id: string;
-    phone: string;
+    phone?: string;
     email?: string;
     fullName?: string;
     roles: UserRole[];
     phoneVerified: boolean;
+    emailVerified: boolean;
     passwordHash?: string;
     refreshTokenHash?: string;
     driverProfile?: DriverProfile;

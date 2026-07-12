@@ -30,10 +30,11 @@ __decorate([
 ], User.prototype, "id", void 0);
 __decorate([
     (0, typeorm_1.Index)({ unique: true }),
-    (0, typeorm_1.Column)({ length: 20 }),
+    (0, typeorm_1.Column)({ length: 20, nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "phone", void 0);
 __decorate([
+    (0, typeorm_1.Index)('IDX_users_email_unique', { unique: true }),
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
@@ -55,6 +56,10 @@ __decorate([
     __metadata("design:type", Boolean)
 ], User.prototype, "phoneVerified", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ name: 'email_verified', default: false }),
+    __metadata("design:type", Boolean)
+], User.prototype, "emailVerified", void 0);
+__decorate([
     (0, typeorm_1.Column)({ name: 'password_hash', nullable: true, select: false }),
     __metadata("design:type", String)
 ], User.prototype, "passwordHash", void 0);
@@ -75,6 +80,7 @@ __decorate([
     __metadata("design:type", Date)
 ], User.prototype, "updatedAt", void 0);
 exports.User = User = __decorate([
-    (0, typeorm_1.Entity)('users')
+    (0, typeorm_1.Entity)('users'),
+    (0, typeorm_1.Check)('CHK_users_identity', '"phone" IS NOT NULL OR "email" IS NOT NULL')
 ], User);
 //# sourceMappingURL=user.entity.js.map

@@ -20,14 +20,14 @@ export class AuthController {
   @Post('otp/request')
   @HttpCode(HttpStatus.OK)
   async requestOtp(@Body() dto: RequestOtpDto) {
-    await this.auth.requestOtp(dto.phone);
+    await this.auth.requestOtp(dto.phone, dto.email);
     return { message: 'OTP sent' };
   }
 
   @Post('otp/verify')
   @HttpCode(HttpStatus.OK)
   verifyOtp(@Body() dto: VerifyOtpDto) {
-    return this.auth.verifyOtp(dto.phone, dto.code);
+    return this.auth.verifyOtp(dto.phone, dto.email, dto.code);
   }
 
   @Post('refresh')

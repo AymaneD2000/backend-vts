@@ -57,22 +57,36 @@ let AuthService = class AuthService {
         this.jwt = jwt;
         this.config = config;
     }
-    async requestOtp(phone) {
-        await this.users.findOrCreateByPhone(phone);
-        await this.otp.requestOtp(phone);
+    async requestOtp(phone, email) {
+        const identity = this.resolveIdentity(phone, email);
+        if (identity.channel === 'email') {
+            await this.users.findOrCreateByEmail(identity.value);
+        }
+        else {
+            await this.users.findOrCreateByPhone(identity.value);
+        }
+        await this.otp.requestOtp(identity.value, identity.channel);
     }
-    async verifyOtp(phone, code) {
-        const ok = await this.otp.verifyOtp(phone, code);
+    async verifyOtp(phone, email, code) {
+        const identity = this.resolveIdentity(phone, email);
+        const ok = await this.otp.verifyOtp(identity.value, identity.channel, code);
         if (!ok)
             throw new common_1.UnauthorizedException('Invalid or expired code');
-        let user = await this.users.findByPhone(phone);
+        let user = identity.channel === 'email'
+            ? await this.users.findByEmail(identity.value)
+            : await this.users.findByPhone(identity.value);
         if (!user)
             throw new common_1.UnauthorizedException('User not found');
-        if (!user.phoneVerified) {
+        if (identity.channel === 'email' && !user.emailVerified) {
+            await this.users.markEmailVerified(user.id);
+        }
+        else if (identity.channel === 'phone' && !user.phoneVerified) {
             await this.users.markPhoneVerified(user.id);
         }
         const adminPhones = this.config.get('admin.phones') ?? [];
-        if (adminPhones.includes(phone)) {
+        const adminEmails = this.config.get('admin.emails') ?? [];
+        if ((user.phone && adminPhones.includes(user.phone)) ||
+            (user.email && adminEmails.includes(user.email))) {
             user = await this.users.addRole(user, user_entity_1.UserRole.ADMIN);
         }
         return this.issueTokens(user);
@@ -103,6 +117,7 @@ let AuthService = class AuthService {
         const payload = {
             sub: user.id,
             phone: user.phone,
+            email: user.email,
             roles: user.roles,
         };
         const accessToken = await this.jwt.signAsync(payload, {
@@ -116,6 +131,15 @@ let AuthService = class AuthService {
         const refreshHash = await argon2.hash(refreshToken);
         await this.users.setRefreshTokenHash(user.id, refreshHash);
         return { accessToken, refreshToken };
+    }
+    resolveIdentity(phone, email) {
+        if ((!phone && !email) || (phone && email)) {
+            throw new common_1.BadRequestException('Provide either phone or email');
+        }
+        if (email) {
+            return { channel: 'email', value: email.trim().toLowerCase() };
+        }
+        return { channel: 'phone', value: phone };
     }
 };
 exports.AuthService = AuthService;

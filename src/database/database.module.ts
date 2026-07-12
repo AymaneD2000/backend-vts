@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { join } from 'path';
 
 @Module({
   imports: [
@@ -26,6 +27,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
           ssl,
           autoLoadEntities: true,
           synchronize: config.get<boolean>('database.synchronize'),
+          migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
+          migrationsRun: config.get<boolean>('database.migrationsRun'),
         };
       },
     }),

@@ -78,11 +78,26 @@ let MerchantsService = class MerchantsService {
             },
             paymentMethod: dto.paymentMethod,
         };
-        return this.rides.request(userId, rideDto, { merchantId: merchant.id });
+        return this.rides.request(userId, rideDto, {
+            merchantId: merchant.id,
+            scheduledAt: dto.scheduledAt ? new Date(dto.scheduledAt) : undefined,
+            recipientName: dto.customerName,
+            recipientPhone: dto.customerPhone,
+            parcelDescription: dto.note,
+        });
     }
     async myDeliveries(userId) {
         const mine = await this.myMerchants(userId);
         return this.rides.findByMerchantIds(mine.map((m) => m.id));
+    }
+    async dispatchDelivery(userId, rideId) {
+        const delivery = await this.rides.findMerchantDelivery(rideId);
+        const merchant = await this.merchants.findOne({
+            where: { id: delivery.merchantId, ownerUserId: userId },
+        });
+        if (!merchant)
+            throw new common_1.NotFoundException('Delivery not found');
+        return this.rides.dispatchScheduled(rideId);
     }
     async grantMerchantRole(userId) {
         const user = await this.users.findOne({ where: { id: userId } });

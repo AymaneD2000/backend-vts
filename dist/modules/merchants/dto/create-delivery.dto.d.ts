@@ -8,4 +8,5 @@ export declare class CreateDeliveryDto {
     customerPhone: string;
     note?: string;
     paymentMethod?: PaymentMethod;
+    scheduledAt?: string;
 }

@@ -1,3 +1,4 @@
+import { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Repository } from 'typeorm';
 import { DriversService } from '../drivers/drivers.service';
@@ -9,7 +10,7 @@ import { RequestRideDto } from './dto/request-ride.dto';
 import { CancelRideDto } from './dto/cancel-ride.dto';
 import { Ride } from './entities/ride.entity';
 import { DriverOnlineEvent } from './ride-events';
-export declare class RidesService {
+export declare class RidesService implements OnModuleInit, OnModuleDestroy {
     private readonly rides;
     private readonly pricing;
     private readonly matching;
@@ -17,13 +18,26 @@ export declare class RidesService {
     private readonly routing;
     private readonly trust;
     private readonly events;
+    private readonly logger;
+    private scheduledDispatchTimer?;
     constructor(rides: Repository<Ride>, pricing: PricingService, matching: MatchingService, drivers: DriversService, routing: RoutingService, trust: TrustService, events: EventEmitter2);
+    onModuleInit(): void;
+    onModuleDestroy(): void;
+    private runScheduledDispatch;
     private emit;
     private offerToDrivers;
     private withdrawOffer;
     request(clientId: string, dto: RequestRideDto, extra?: {
         merchantId?: string;
+        scheduledAt?: Date;
+        recipientName?: string;
+        recipientPhone?: string;
+        parcelDescription?: string;
     }): Promise<Ride>;
+    private offerRide;
+    private dispatchDueScheduled;
+    dispatchScheduled(rideId: string): Promise<Ride>;
+    private claimAndDispatchScheduled;
     private eligibleDriverIds;
     accept(rideId: string, driverId: string): Promise<Ride>;
     handleDriverOnline(event: DriverOnlineEvent): Promise<void>;
@@ -33,6 +47,7 @@ export declare class RidesService {
     get(rideId: string, userId: string): Promise<Ride>;
     list(userId: string): Promise<Ride[]>;
     findByMerchantIds(merchantIds: string[]): Promise<Ride[]>;
+    findMerchantDelivery(rideId: string): Promise<Ride>;
     getActiveRideForDriver(driverId: string): Promise<Ride | null>;
     private assertDriver;
     private getOrThrow;

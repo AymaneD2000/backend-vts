@@ -1,4 +1,5 @@
 import {
+  IsDateString,
   IsEnum,
   IsLatitude,
   IsLongitude,
@@ -42,4 +43,9 @@ export class CreateDeliveryDto {
   @IsOptional()
   @IsEnum(PaymentMethod)
   paymentMethod?: PaymentMethod;
+
+  // ISO-8601 date/time. Omit it to dispatch the delivery immediately.
+  @IsOptional()
+  @IsDateString()
+  scheduledAt?: string;
 }
