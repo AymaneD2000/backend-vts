@@ -68,5 +68,9 @@ export default () => {
     kyc: {
       uploadDir: process.env.KYC_UPLOAD_DIR ?? 'uploads/kyc',
     },
+    merchant: {
+      logoDir:
+        process.env.MERCHANT_LOGO_DIR ?? 'uploads/merchant-logos',
+    },
   };
 };

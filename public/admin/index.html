@@ -313,7 +313,7 @@
         <button onclick="createMerchant()">Ajouter le commerce</button>
         <div id="mError" class="error"></div>
         <table style="margin-top:16px;">
-          <thead><tr><th>Nom</th><th>Type</th><th>Adresse</th><th>Statut</th><th></th></tr></thead>
+          <thead><tr><th>Logo</th><th>Nom</th><th>Type</th><th>Contact</th><th>Adresse</th><th>Statut</th><th></th></tr></thead>
           <tbody id="merchantBody"></tbody>
         </table>
       </div>
@@ -905,7 +905,7 @@
         const body = document.getElementById('merchantBody');
         body.innerHTML = '';
         if (!merchants.length) {
-          body.innerHTML = '<tr><td colspan="5" class="muted">Aucun commerce.</td></tr>';
+          body.innerHTML = '<tr><td colspan="7" class="muted">Aucun commerce.</td></tr>';
         }
         for (const m of merchants) {
           const tr = document.createElement('tr');
@@ -915,9 +915,14 @@
           const actions = m.status === 'active'
             ? '<button class="sm red" data-status="suspended">Suspendre</button>'
             : '<button class="sm green" data-status="active">Activer</button>';
+          const logo = m.logoUrl
+            ? '<img src="' + escapeHtml(m.logoUrl) + '" alt="" style="width:42px;height:42px;border-radius:8px;object-fit:cover">'
+            : '<span class="muted">—</span>';
           tr.innerHTML =
+            '<td>' + logo + '</td>' +
             '<td>' + escapeHtml(m.name) + '</td>' +
             '<td>' + (MERCHANT_TYPE_LABELS[m.type] || m.type) + '</td>' +
+            '<td>' + escapeHtml(m.phone || '—') + '</td>' +
             '<td>' + escapeHtml(m.address || '—') + '</td>' +
             '<td>' + status + '</td>' +
             '<td><div class="row">' + actions + '</div><div class="error" data-err></div></td>';

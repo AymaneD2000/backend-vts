@@ -44,6 +44,10 @@ export class Merchant {
   @Column({ nullable: true })
   address?: string;
 
+  // Public branding image, stored separately from private KYC documents.
+  @Column({ name: 'logo_url', nullable: true })
+  logoUrl?: string;
+
   // Shop location — used as the pickup point for deliveries.
   @Column({ type: 'double precision', nullable: true })
   lat?: number;
