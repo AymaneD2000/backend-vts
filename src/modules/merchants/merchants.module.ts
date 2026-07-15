@@ -9,12 +9,21 @@ import { resolve } from 'path';
 import { RidesModule } from '../rides/rides.module';
 import { User } from '../users/entities/user.entity';
 import { Merchant } from './entities/merchant.entity';
+import { ProductCategory } from './entities/product-category.entity';
+import { Product } from './entities/product.entity';
+import { Promotion } from './entities/promotion.entity';
 import { MerchantsController } from './merchants.controller';
 import { MerchantsService } from './merchants.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Merchant, User]),
+    TypeOrmModule.forFeature([
+      Merchant,
+      ProductCategory,
+      Product,
+      Promotion,
+      User,
+    ]),
     RidesModule,
     MulterModule.registerAsync({
       imports: [ConfigModule],

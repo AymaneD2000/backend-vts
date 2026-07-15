@@ -19,9 +19,17 @@ import { RolesGuard } from '../../common/roles.guard';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { UserRole } from '../users/entities/user.entity';
 import { ApplyMerchantDto } from './dto/apply-merchant.dto';
+import {
+  CreateProductCategoryDto,
+  CreateProductDto,
+  UpdateProductCategoryDto,
+  UpdateProductDto,
+  UpdateStorefrontDto,
+} from './dto/catalog.dto';
 import { CreateDeliveryDto } from './dto/create-delivery.dto';
 import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
+import { CreatePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { MerchantsService } from './merchants.service';
 
 interface MerchantLogoFile {
@@ -69,6 +77,11 @@ export class MerchantsController {
     return this.merchants.activeMerchants();
   }
 
+  @Get(':id/catalog')
+  catalog(@Param('id') id: string) {
+    return this.merchants.catalog(id);
+  }
+
   @Post('mine/apply')
   apply(
     @CurrentUser('userId') userId: string,
@@ -93,6 +106,112 @@ export class MerchantsController {
     file: MerchantLogoFile,
   ) {
     return this.merchants.saveLogo(userId, id, file.filename);
+  }
+
+  @Get('mine/:id/catalog')
+  myCatalog(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.merchants.ownerCatalog(userId, id);
+  }
+
+  @Patch('mine/:id/storefront')
+  updateStorefront(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateStorefrontDto,
+  ) {
+    return this.merchants.updateStorefront(userId, id, dto);
+  }
+
+  @Post('mine/:id/categories')
+  createCategory(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateProductCategoryDto,
+  ) {
+    return this.merchants.createCategory(userId, id, dto);
+  }
+
+  @Patch('mine/:id/categories/:categoryId')
+  updateCategory(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Param('categoryId') categoryId: string,
+    @Body() dto: UpdateProductCategoryDto,
+  ) {
+    return this.merchants.updateCategory(userId, id, categoryId, dto);
+  }
+
+  @Post('mine/:id/products')
+  createProduct(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Body() dto: CreateProductDto,
+  ) {
+    return this.merchants.createProduct(userId, id, dto);
+  }
+
+  @Patch('mine/:id/products/:productId')
+  updateProduct(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Param('productId') productId: string,
+    @Body() dto: UpdateProductDto,
+  ) {
+    return this.merchants.updateProduct(userId, id, productId, dto);
+  }
+
+  @Post('mine/:id/products/:productId/image')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadProductImage(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Param('productId') productId: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    file: MerchantLogoFile,
+  ) {
+    return this.merchants.saveProductImage(
+      userId,
+      id,
+      productId,
+      file.filename,
+    );
+  }
+
+  @Get('mine/:id/promotions')
+  promotions(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+  ) {
+    return this.merchants.ownerPromotions(userId, id);
+  }
+
+  @Post('mine/:id/promotions')
+  createPromotion(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Body() dto: CreatePromotionDto,
+  ) {
+    return this.merchants.createPromotion(userId, id, dto);
+  }
+
+  @Patch('mine/:id/promotions/:promotionId')
+  updatePromotion(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Param('promotionId') promotionId: string,
+    @Body() dto: UpdatePromotionDto,
+  ) {
+    return this.merchants.updatePromotion(userId, id, promotionId, dto);
   }
 
   @Post('mine/deliveries')
