@@ -90,6 +90,21 @@ export class MerchantsService {
     });
   }
 
+  featuredPromotions(): Promise<Promotion[]> {
+    const now = new Date();
+    return this.promotions.find({
+      where: {
+        isActive: true,
+        startsAt: LessThanOrEqual(now),
+        endsAt: MoreThanOrEqual(now),
+        merchant: { status: MerchantStatus.ACTIVE },
+      },
+      relations: { merchant: true },
+      order: { createdAt: 'DESC' },
+      take: 12,
+    });
+  }
+
   async catalog(merchantId: string): Promise<MerchantCatalog> {
     const merchant = await this.merchants.findOne({
       where: { id: merchantId, status: MerchantStatus.ACTIVE },

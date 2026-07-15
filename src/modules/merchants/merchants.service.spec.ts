@@ -158,6 +158,23 @@ describe('MerchantsService applications', () => {
     );
   });
 
+  it('features only live promotions from active merchants', async () => {
+    promotions.find.mockResolvedValue([]);
+
+    await service.featuredPromotions();
+
+    expect(promotions.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          isActive: true,
+          merchant: { status: MerchantStatus.ACTIVE },
+        }),
+        relations: { merchant: true },
+        take: 12,
+      }),
+    );
+  });
+
   it('returns only active and available catalog content to customers', async () => {
     merchants.findOne.mockResolvedValue({
       id: 'merchant-1',

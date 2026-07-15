@@ -1,8 +1,9 @@
 export default () => {
   const env = process.env.NODE_ENV ?? 'development';
   // Auto schema sync is convenient in dev but unsafe in production, where
-  // migrations must be used. Default off in production unless explicitly on.
+  // committed migrations run automatically instead.
   const synchronizeDefault = env === 'production' ? 'false' : 'true';
+  const migrationsRunDefault = env === 'production' ? 'true' : 'false';
   return {
     env,
     port: parseInt(process.env.PORT ?? '3000', 10),
@@ -14,7 +15,8 @@ export default () => {
       password: process.env.DB_PASSWORD ?? 'vts',
       name: process.env.DB_NAME ?? 'vts',
       synchronize: (process.env.DB_SYNCHRONIZE ?? synchronizeDefault) === 'true',
-      migrationsRun: (process.env.DB_MIGRATIONS_RUN ?? 'false') === 'true',
+      migrationsRun:
+        (process.env.DB_MIGRATIONS_RUN ?? migrationsRunDefault) === 'true',
       ssl: (process.env.DB_SSL ?? 'false') === 'true',
     },
     redis: {

@@ -77,6 +77,11 @@ export class MerchantsController {
     return this.merchants.activeMerchants();
   }
 
+  @Get('featured')
+  featured() {
+    return this.merchants.featuredPromotions();
+  }
+
   @Get(':id/catalog')
   catalog(@Param('id') id: string) {
     return this.merchants.catalog(id);
