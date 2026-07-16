@@ -38,7 +38,13 @@ import { MerchantsService } from './merchants.service';
           fileFilter: (_req, file, callback) => {
             callback(
               null,
-              ['image/jpeg', 'image/png', 'image/webp'].includes(file.mimetype),
+              [
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'image/heic',
+                'image/heif',
+              ].includes(file.mimetype),
             );
           },
           storage: diskStorage({
@@ -48,6 +54,8 @@ import { MerchantsService } from './merchants.service';
                 'image/jpeg': '.jpg',
                 'image/png': '.png',
                 'image/webp': '.webp',
+                'image/heic': '.heic',
+                'image/heif': '.heif',
               };
               callback(
                 null,
