@@ -33,6 +33,9 @@ export class ProductCategory {
   @Column({ name: 'is_active', default: true })
   isActive: boolean;
 
+  @Column({ name: 'image_url', nullable: true })
+  imageUrl?: string;
+
   @OneToMany(() => Product, (product) => product.category)
   products: Product[];
 

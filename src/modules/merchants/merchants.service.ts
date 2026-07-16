@@ -241,6 +241,32 @@ export class MerchantsService {
     return this.categories.save(category);
   }
 
+  async saveCategoryImage(
+    userId: string,
+    merchantId: string,
+    categoryId: string,
+    filename: string,
+  ): Promise<ProductCategory> {
+    await this.ownedMerchant(userId, merchantId);
+    const category = await this.categories.findOne({
+      where: { id: categoryId, merchantId },
+    });
+    if (!category) {
+      await this.removeLogoFile(filename);
+      throw new NotFoundException('Category not found');
+    }
+    const previous = category.imageUrl;
+    category.imageUrl = `/merchant-logos/${filename}`;
+    try {
+      const saved = await this.categories.save(category);
+      if (previous) await this.removeLogoFile(basename(previous));
+      return saved;
+    } catch (error) {
+      await this.removeLogoFile(filename);
+      throw error;
+    }
+  }
+
   async createProduct(
     userId: string,
     merchantId: string,

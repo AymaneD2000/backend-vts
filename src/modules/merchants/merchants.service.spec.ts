@@ -220,4 +220,28 @@ describe('MerchantsService applications', () => {
     );
     expect(result.name).toBe('Riz au poulet');
   });
+
+  it('stores a category image only for an owned merchant category', async () => {
+    merchants.findOne.mockResolvedValue({
+      id: 'merchant-1',
+      ownerUserId: 'user-1',
+    } as Merchant);
+    categories.findOne.mockResolvedValue({
+      id: 'category-1',
+      merchantId: 'merchant-1',
+      name: 'Boissons',
+    } as ProductCategory);
+
+    const result = await service.saveCategoryImage(
+      'user-1',
+      'merchant-1',
+      'category-1',
+      'category.jpg',
+    );
+
+    expect(result.imageUrl).toBe('/merchant-logos/category.jpg');
+    expect(categories.save).toHaveBeenCalledWith(
+      expect.objectContaining({ imageUrl: '/merchant-logos/category.jpg' }),
+    );
+  });
 });

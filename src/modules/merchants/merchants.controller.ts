@@ -149,6 +149,30 @@ export class MerchantsController {
     return this.merchants.updateCategory(userId, id, categoryId, dto);
   }
 
+  @Post('mine/:id/categories/:categoryId/image')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadCategoryImage(
+    @CurrentUser('userId') userId: string,
+    @Param('id') id: string,
+    @Param('categoryId') categoryId: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
+          new FileTypeValidator({ fileType: /^image\/(jpeg|png|webp)$/ }),
+        ],
+      }),
+    )
+    file: MerchantLogoFile,
+  ) {
+    return this.merchants.saveCategoryImage(
+      userId,
+      id,
+      categoryId,
+      file.filename,
+    );
+  }
+
   @Post('mine/:id/products')
   createProduct(
     @CurrentUser('userId') userId: string,
