@@ -96,6 +96,33 @@ export class AuthService {
     await this.users.setRefreshTokenHash(userId, null);
   }
 
+  async me(userId: string): Promise<{
+    userId: string;
+    phone?: string;
+    email?: string;
+    fullName?: string;
+    roles: UserRole[];
+    phoneVerified: boolean;
+    emailVerified: boolean;
+  }> {
+    const user = await this.users.findById(userId);
+    if (!user) throw new UnauthorizedException('User not found');
+    return {
+      userId: user.id,
+      phone: user.phone,
+      email: user.email,
+      fullName: user.fullName,
+      roles: user.roles,
+      phoneVerified: user.phoneVerified,
+      emailVerified: user.emailVerified,
+    };
+  }
+
+  async updateProfile(userId: string, fullName?: string) {
+    await this.users.updateProfile(userId, fullName);
+    return this.me(userId);
+  }
+
   private async issueTokens(user: User): Promise<AuthTokens> {
     const payload: JwtPayload = {
       sub: user.id,

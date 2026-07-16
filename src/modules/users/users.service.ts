@@ -22,6 +22,13 @@ export class UsersService {
     return this.users.findOne({ where: { id } });
   }
 
+  async updateProfile(id: string, fullName?: string): Promise<User> {
+    const user = await this.findById(id);
+    if (!user) throw new NotFoundException('User not found');
+    if (fullName !== undefined) user.fullName = fullName.trim();
+    return this.users.save(user);
+  }
+
   async createWithPhone(phone: string, roles: UserRole[] = [UserRole.CLIENT]): Promise<User> {
     const user = this.users.create({ phone, roles });
     return this.users.save(user);
