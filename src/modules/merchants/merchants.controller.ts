@@ -1,7 +1,7 @@
 import {
   Body,
   Controller,
-  FileTypeValidator,
+  FileValidator,
   Get,
   MaxFileSizeValidator,
   Param,
@@ -34,6 +34,29 @@ import { MerchantsService } from './merchants.service';
 
 interface MerchantLogoFile {
   filename: string;
+  mimetype: string;
+}
+
+const ALLOWED_IMAGE_TYPES = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/heic',
+  'image/heif',
+]);
+
+class MerchantImageValidator extends FileValidator<Record<string, never>> {
+  isValid(file?: unknown): boolean {
+    if (file == null || Array.isArray(file) || typeof file !== 'object') {
+      return false;
+    }
+    const mimetype = (file as { mimetype?: unknown }).mimetype;
+    return typeof mimetype === 'string' && ALLOWED_IMAGE_TYPES.has(mimetype);
+  }
+
+  buildErrorMessage(): string {
+    return 'Only JPEG, PNG, WebP, HEIC, and HEIF images are allowed';
+  }
 }
 
 @UseGuards(JwtAuthGuard)
@@ -104,9 +127,7 @@ export class MerchantsController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({
-            fileType: /^image\/(jpeg|png|webp|heic|heif)$/,
-          }),
+          new MerchantImageValidator({}),
         ],
       }),
     )
@@ -161,9 +182,7 @@ export class MerchantsController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({
-            fileType: /^image\/(jpeg|png|webp|heic|heif)$/,
-          }),
+          new MerchantImageValidator({}),
         ],
       }),
     )
@@ -206,9 +225,7 @@ export class MerchantsController {
       new ParseFilePipe({
         validators: [
           new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }),
-          new FileTypeValidator({
-            fileType: /^image\/(jpeg|png|webp|heic|heif)$/,
-          }),
+          new MerchantImageValidator({}),
         ],
       }),
     )
