@@ -16,7 +16,7 @@ describe('MerchantsService applications', () => {
     Pick<Repository<ProductCategory>, 'find' | 'findOne' | 'create' | 'save'>
   >;
   let products: jest.Mocked<
-    Pick<Repository<Product>, 'findOne' | 'create' | 'save'>
+    Pick<Repository<Product>, 'find' | 'findOne' | 'create' | 'save'>
   >;
   let promotions: jest.Mocked<
     Pick<Repository<Promotion>, 'find' | 'findOne' | 'create' | 'save'>
@@ -26,7 +26,7 @@ describe('MerchantsService applications', () => {
 
   beforeEach(() => {
     merchants = {
-      find: jest.fn(),
+      find: jest.fn().mockResolvedValue([]),
       findOne: jest.fn(),
       create: jest.fn((value) => value as Merchant),
       save: jest.fn((value) => Promise.resolve(value as Merchant)),
@@ -38,6 +38,7 @@ describe('MerchantsService applications', () => {
       save: jest.fn((value) => Promise.resolve(value as ProductCategory)),
     } as any;
     products = {
+      find: jest.fn().mockResolvedValue([]),
       findOne: jest.fn(),
       create: jest.fn((value) => value as Product),
       save: jest.fn((value) => Promise.resolve(value as Product)),
@@ -189,10 +190,10 @@ describe('MerchantsService applications', () => {
         where: expect.objectContaining({
           merchantId: 'merchant-1',
           isActive: true,
-          products: { isAvailable: true },
         }),
       }),
     );
+    expect(products.find).not.toHaveBeenCalled();
   });
 
   it('creates a product only in a category belonging to the owned merchant', async () => {
@@ -219,6 +220,33 @@ describe('MerchantsService applications', () => {
       }),
     );
     expect(result.name).toBe('Riz au poulet');
+  });
+
+  it('groups saved products into their category when loading the owner catalog', async () => {
+    merchants.findOne.mockResolvedValue({
+      id: 'merchant-1',
+      ownerUserId: 'user-1',
+    } as Merchant);
+    categories.find.mockResolvedValue([
+      {
+        id: 'category-1',
+        merchantId: 'merchant-1',
+        name: 'Repas',
+      } as ProductCategory,
+    ]);
+    products.find.mockResolvedValue([
+      {
+        id: 'product-1',
+        merchantId: 'merchant-1',
+        categoryId: 'category-1',
+        name: 'Poulet',
+      } as Product,
+    ]);
+
+    const catalog = await service.ownerCatalog('user-1', 'merchant-1');
+
+    expect(catalog.categories[0].products).toHaveLength(1);
+    expect(catalog.categories[0].products[0].name).toBe('Poulet');
   });
 
   it('stores a category image only for an owned merchant category', async () => {

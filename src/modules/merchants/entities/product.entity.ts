@@ -3,6 +3,7 @@ import {
   CreateDateColumn,
   Entity,
   Index,
+  JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
@@ -20,6 +21,7 @@ export class Product {
   merchantId: string;
 
   @ManyToOne(() => Merchant, { onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'merchant_id' })
   merchant: Merchant;
 
   @Index()
@@ -29,6 +31,7 @@ export class Product {
   @ManyToOne(() => ProductCategory, (category) => category.products, {
     onDelete: 'CASCADE',
   })
+  @JoinColumn({ name: 'category_id' })
   category: ProductCategory;
 
   @Column({ length: 160 })

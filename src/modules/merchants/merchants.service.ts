@@ -110,15 +110,7 @@ export class MerchantsService {
       where: { id: merchantId, status: MerchantStatus.ACTIVE },
     });
     if (!merchant) throw new NotFoundException('Merchant not found');
-    const categories = await this.categories.find({
-      where: {
-        merchantId,
-        isActive: true,
-        products: { isAvailable: true },
-      },
-      relations: { products: true },
-      order: { sortOrder: 'ASC', name: 'ASC', products: { sortOrder: 'ASC', name: 'ASC' } },
-    });
+    const categories = await this.catalogCategories(merchantId, true);
     const promotions = await this.activePromotions(merchantId);
     return { merchant, categories, promotions };
   }
@@ -195,11 +187,7 @@ export class MerchantsService {
     merchantId: string,
   ): Promise<MerchantCatalog> {
     const merchant = await this.ownedMerchant(userId, merchantId);
-    const categories = await this.categories.find({
-      where: { merchantId },
-      relations: { products: true },
-      order: { sortOrder: 'ASC', name: 'ASC', products: { sortOrder: 'ASC', name: 'ASC' } },
-    });
+    const categories = await this.catalogCategories(merchantId, false);
     const promotions = await this.promotions.find({
       where: { merchantId },
       order: { startsAt: 'DESC' },
@@ -471,6 +459,34 @@ export class MerchantsService {
       },
       order: { createdAt: 'DESC' },
     });
+  }
+
+  private async catalogCategories(
+    merchantId: string,
+    publicOnly: boolean,
+  ): Promise<ProductCategory[]> {
+    const categories = await this.categories.find({
+      where: publicOnly ? { merchantId, isActive: true } : { merchantId },
+      order: { sortOrder: 'ASC', name: 'ASC' },
+    });
+    if (categories.length === 0) return [];
+
+    const products = await this.products.find({
+      where: publicOnly ? { merchantId, isAvailable: true } : { merchantId },
+      order: { sortOrder: 'ASC', name: 'ASC' },
+    });
+    const productsByCategory = new Map<string, Product[]>();
+    for (const product of products) {
+      const current = productsByCategory.get(product.categoryId) ?? [];
+      current.push(product);
+      productsByCategory.set(product.categoryId, current);
+    }
+    for (const category of categories) {
+      category.products = productsByCategory.get(category.id) ?? [];
+    }
+    return publicOnly
+      ? categories.filter((category) => category.products.length > 0)
+      : categories;
   }
 
   private promotionDates(
