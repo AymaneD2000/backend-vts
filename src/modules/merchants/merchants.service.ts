@@ -10,6 +10,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { promises as fs } from 'fs';
 import { basename, join, resolve } from 'path';
 import {
+  ILike,
+  In,
   IsNull,
   LessThanOrEqual,
   MoreThanOrEqual,
@@ -103,6 +105,57 @@ export class MerchantsService {
       order: { createdAt: 'DESC' },
       take: 12,
     });
+  }
+
+  // --- Discovery (read-only, consumed by the discovery/BFF module) ---
+
+  // Active merchants whose name or description matches the query. Used by the
+  // unified search surface.
+  searchMerchants(q: string, limit = 20): Promise<Merchant[]> {
+    const term = `%${q}%`;
+    return this.merchants.find({
+      where: [
+        { status: MerchantStatus.ACTIVE, name: ILike(term) },
+        { status: MerchantStatus.ACTIVE, description: ILike(term) },
+      ],
+      order: { name: 'ASC' },
+      take: limit,
+    });
+  }
+
+  // Available products (dishes/items) of active merchants matching the query.
+  async searchProducts(q: string, limit = 20): Promise<Product[]> {
+    const products = await this.products.find({
+      where: { name: ILike(`%${q}%`), isAvailable: true },
+      relations: { merchant: true },
+      order: { name: 'ASC' },
+      take: limit * 2,
+    });
+    return products
+      .filter((p) => p.merchant?.status === MerchantStatus.ACTIVE)
+      .slice(0, limit);
+  }
+
+  // Up to `perMerchant` available products for each of the given merchants,
+  // keyed by merchant id. Used to decorate feed cards with a product preview.
+  async previewProducts(
+    merchantIds: string[],
+    perMerchant = 3,
+  ): Promise<Map<string, Product[]>> {
+    const byMerchant = new Map<string, Product[]>();
+    if (merchantIds.length === 0) return byMerchant;
+    const products = await this.products.find({
+      where: { merchantId: In(merchantIds), isAvailable: true },
+      order: { sortOrder: 'ASC', name: 'ASC' },
+    });
+    for (const product of products) {
+      const current = byMerchant.get(product.merchantId) ?? [];
+      if (current.length < perMerchant) {
+        current.push(product);
+        byMerchant.set(product.merchantId, current);
+      }
+    }
+    return byMerchant;
   }
 
   async catalog(merchantId: string): Promise<MerchantCatalog> {
