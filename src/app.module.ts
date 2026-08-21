@@ -5,6 +5,7 @@ import { AppController } from './app.controller';
 import configuration from './config/configuration';
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { DiscoveryModule } from './modules/discovery/discovery.module';
 import { DriversModule } from './modules/drivers/drivers.module';
 import { KycModule } from './modules/kyc/kyc.module';
 import { MatchingModule } from './modules/matching/matching.module';
@@ -43,6 +44,7 @@ import { RedisModule } from './redis/redis.module';
     RentalsModule,
     MerchantsModule,
     OrdersModule,
+    DiscoveryModule,
   ],
   controllers: [AppController],
 })

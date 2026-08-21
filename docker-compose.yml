@@ -1,0 +1,66 @@
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: vts
+      POSTGRES_PASSWORD: vts
+      POSTGRES_DB: vts
+    ports:
+      - "5432:5432"
+    volumes:
+      - vts-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vts -d vts"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - vts-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: "3000"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: vts
+      DB_PASSWORD: vts
+      DB_NAME: vts
+      DB_SYNCHRONIZE: "true"
+      DB_MIGRATIONS_RUN: "false"
+      DB_SSL: "false"
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      JWT_ACCESS_SECRET: dev_access_secret
+      JWT_ACCESS_TTL: 900s
+      JWT_REFRESH_SECRET: dev_refresh_secret
+      JWT_REFRESH_TTL: 30d
+      SMS_PROVIDER: console
+      EMAIL_PROVIDER: console
+      PUSH_PROVIDER: console
+      MERCHANT_LOGO_DIR: uploads/merchant-logos
+    ports:
+      - "3000:3000"
+    volumes:
+      - vts-uploads:/app/uploads
+
+volumes:
+  vts-pg:
+  vts-redis:
+  vts-uploads:

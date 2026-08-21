@@ -199,6 +199,25 @@ export class RentalsService implements OnModuleInit {
     return saved;
   }
 
+  // Available vehicles whose name or category matches the query. Read-only,
+  // consumed by the discovery/BFF search surface. The catalog is small, so the
+  // match is done in memory to avoid ILIKE against the enum category column.
+  async searchVehicles(q: string, limit = 20): Promise<RentalVehicle[]> {
+    const vehicles = await this.vehicles.find({
+      where: { isAvailable: true },
+      order: { dailyPrice: 'ASC' },
+    });
+    const term = q.trim().toLowerCase();
+    if (!term) return [];
+    return vehicles
+      .filter(
+        (v) =>
+          v.name.toLowerCase().includes(term) ||
+          v.category.toLowerCase().includes(term),
+      )
+      .slice(0, limit);
+  }
+
   myBookings(clientId: string): Promise<RentalBooking[]> {
     return this.bookings.find({
       where: [{ clientId }, { driverId: clientId }],
