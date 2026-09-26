@@ -48,6 +48,15 @@ export class Merchant {
   @Column({ name: 'logo_url', nullable: true })
   logoUrl?: string;
 
+  @Column({ name: 'cover_url', nullable: true })
+  coverUrl?: string;
+
+  @Column({ name: 'rating_avg', type: 'numeric', precision: 3, scale: 2, default: 0 })
+  ratingAvg: number;
+
+  @Column({ name: 'rating_count', type: 'integer', default: 0 })
+  ratingCount: number;
+
   @Column({ type: 'text', nullable: true })
   description?: string;
 
@@ -69,6 +78,10 @@ export class Merchant {
 
   @Column({ type: 'double precision', nullable: true })
   lng?: number;
+
+  // PostGIS geography(Point, 4326) for spatial queries (nearby feed, radius search)
+  @Column({ type: 'geography', spatialFeatureType: 'Point', srid: 4326, nullable: true })
+  location?: any;
 
   @Index()
   @Column({

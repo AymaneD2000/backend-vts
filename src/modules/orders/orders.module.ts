@@ -9,6 +9,7 @@ import { OrderStatusHistory } from './entities/order-status-history.entity';
 import { Order } from './entities/order.entity';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
+import { InventoryModule } from '../inventory/inventory.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { OrdersService } from './orders.service';
       Promotion,
     ]),
     RidesModule,
+    InventoryModule,
   ],
   controllers: [OrdersController],
   providers: [OrdersService],

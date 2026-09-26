@@ -25,6 +25,8 @@ import { CheckoutOrderDto, UpdateOrderStatusDto } from './dto/order.dto';
 import { OrderItem } from './entities/order-item.entity';
 import { OrderStatusHistory } from './entities/order-status-history.entity';
 import { Order, OrderStatus } from './entities/order.entity';
+import { InventoryService } from '../inventory/inventory.service';
+import { Optional } from '@nestjs/common';
 
 const MERCHANT_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
   [OrderStatus.PENDING]: [OrderStatus.ACCEPTED, OrderStatus.CANCELLED],
@@ -46,6 +48,7 @@ export class OrdersService {
     private readonly promotions: Repository<Promotion>,
     private readonly dataSource: DataSource,
     private readonly rides: RidesService,
+    @Optional() private readonly inventory?: InventoryService,
   ) {}
 
   async checkout(customerId: string, dto: CheckoutOrderDto): Promise<Order> {
@@ -110,6 +113,9 @@ export class OrdersService {
     const total = subtotal - promotion.productDiscount + chargedDeliveryFee;
 
     const orderId = await this.dataSource.transaction(async (manager) => {
+      const lockedProducts = this.inventory
+        ? await this.inventory.lockProducts(manager, merchant.id, quantityByProduct)
+        : products;
       const order = await manager.save(
         manager.create(Order, {
           customerId,
@@ -131,6 +137,15 @@ export class OrdersService {
           scheduledAt,
         }),
       );
+      if (this.inventory) {
+        await this.inventory.reserveLocked(manager, {
+          orderId: order.id,
+          merchantId: merchant.id,
+          actorUserId: customerId,
+          quantities: quantityByProduct,
+          products: lockedProducts,
+        });
+      }
       await manager.save(
         OrderItem,
         lines.map((line) =>

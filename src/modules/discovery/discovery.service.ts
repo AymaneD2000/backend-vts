@@ -51,7 +51,11 @@ export class DiscoveryService {
     const cursor = dto.cursor ? decodeCursor<FeedCursor>(dto.cursor) : null;
 
     const [merchants, promotions] = await Promise.all([
-      this.settled(() => this.merchants.activeMerchants(), 'feed:merchants', []),
+      this.settled(
+        () => this.merchants.findNearby(origin.lat, origin.lng, 50000, limit * 3),
+        'feed:merchants',
+        [],
+      ),
       this.settled(
         () => this.merchants.featuredPromotions(),
         'feed:promotions',
@@ -66,6 +70,8 @@ export class DiscoveryService {
       }
     }
 
+    const { haversineMeters } = await import('../../common/geo');
+    
     const ranked = merchants
       .filter((m) => m.lat != null && m.lng != null)
       .map((m) => ({
@@ -102,8 +108,11 @@ export class DiscoveryService {
       id: r.merchant.id,
       name: r.merchant.name,
       logoUrl: r.merchant.logoUrl ?? null,
+      coverUrl: r.merchant.coverUrl ?? null,
       category: r.merchant.type,
       distanceMeters: r.distance,
+      rating: Number(r.merchant.ratingAvg ?? 0),
+      ratingCount: Number(r.merchant.ratingCount ?? 0),
       offerBadge: offerByMerchant.get(r.merchant.id),
       previewProducts: (previews.get(r.merchant.id) ?? []).map((p) => ({
         id: p.id,
@@ -148,7 +157,10 @@ export class DiscoveryService {
         id: m.id,
         name: m.name,
         logoUrl: m.logoUrl ?? null,
+        coverUrl: m.coverUrl ?? null,
         category: m.type,
+        ratingAvg: Number(m.ratingAvg ?? 0),
+        ratingCount: Number(m.ratingCount ?? 0),
         distanceMeters:
           origin && m.lat != null && m.lng != null
             ? Math.round(haversineMeters(origin, { lat: m.lat, lng: m.lng }))

@@ -32,6 +32,8 @@ export enum PaymentMethod {
   MOBILE_MONEY = 'mobile_money',
 }
 
+export enum RideTier { ECO = 'eco', PREMIUM = 'premium' }
+
 // Who initiated the cancellation.
 export enum CancelledBy {
   CLIENT = 'client',
@@ -215,6 +217,28 @@ export class Ride {
   @Index()
   @Column({ name: 'merchant_id', type: 'uuid', nullable: true })
   merchantId?: string;
+
+  @Column({ name: 'ride_tier', type: 'varchar', length: 20, nullable: true })
+  rideTier?: RideTier;
+
+  @Column({ name: 'rate_card_id', type: 'uuid', nullable: true })
+  rateCardId?: string;
+
+  @Column({ name: 'surge_multiplier', type: 'numeric', precision: 4, scale: 2, default: 1 })
+  surgeMultiplier: number;
+
+  @Column({ name: 'quote_base_amount', type: 'integer', nullable: true }) quoteBaseAmount?: number;
+  @Column({ name: 'quote_distance_amount', type: 'integer', nullable: true }) quoteDistanceAmount?: number;
+  @Column({ name: 'quote_time_amount', type: 'integer', nullable: true }) quoteTimeAmount?: number;
+  @Column({ name: 'quote_subtotal_amount', type: 'integer', nullable: true }) quoteSubtotalAmount?: number;
+  @Column({ name: 'demand_zone_id', type: 'uuid', nullable: true }) demandZoneId?: string;
+  @Column({ name: 'pin_required', default: false }) pinRequired: boolean;
+  @Column({ name: 'pickup_pin_ciphertext', type: 'text', nullable: true }) pickupPinCiphertext?: string;
+  @Column({ name: 'pickup_pin_iv', type: 'varchar', nullable: true }) pickupPinIv?: string;
+  @Column({ name: 'pickup_pin_auth_tag', type: 'varchar', nullable: true }) pickupPinAuthTag?: string;
+  @Column({ name: 'pickup_pin_digest', type: 'varchar', nullable: true }) pickupPinDigest?: string;
+  @Column({ name: 'pin_failed_attempts', type: 'integer', default: 0 }) pinFailedAttempts: number;
+  @Column({ name: 'pin_locked_until', type: 'timestamptz', nullable: true }) pinLockedUntil?: Date;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;

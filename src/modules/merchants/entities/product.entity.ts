@@ -50,6 +50,12 @@ export class Product {
   @Column({ name: 'is_available', default: true })
   isAvailable: boolean;
 
+  @Column({ name: 'track_inventory', default: false })
+  trackInventory: boolean;
+
+  @Column({ name: 'stock_quantity', type: 'integer', nullable: true })
+  stockQuantity: number | null;
+
   @Column({ name: 'sort_order', type: 'integer', default: 0 })
   sortOrder: number;
 

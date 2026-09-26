@@ -74,5 +74,48 @@ export default () => {
       logoDir:
         process.env.MERCHANT_LOGO_DIR ?? 'uploads/merchant-logos',
     },
+    rateLimit: {
+      paymentRetryLimit: parseInt(process.env.PAYMENT_RETRY_LIMIT ?? '3', 10),
+      paymentRetryWindowSeconds: parseInt(
+        process.env.PAYMENT_RETRY_WINDOW_SECONDS ?? '900',
+        10,
+      ),
+      merchantReviewLimit: parseInt(process.env.MERCHANT_REVIEW_LIMIT ?? '5', 10),
+      merchantReviewWindowSeconds: parseInt(
+        process.env.MERCHANT_REVIEW_WINDOW_SECONDS ?? '3600',
+        10,
+      ),
+      withdrawalRequestLimit: parseInt(
+        process.env.WITHDRAWAL_REQUEST_LIMIT ?? '3',
+        10,
+      ),
+      withdrawalRequestWindowSeconds: parseInt(
+        process.env.WITHDRAWAL_REQUEST_WINDOW_SECONDS ?? '3600',
+        10,
+      ),
+    },
+    rateLimits: {
+      paymentRetry: {
+        limit: parseInt(process.env.PAYMENT_RETRY_LIMIT ?? '3', 10),
+        windowSeconds: parseInt(
+          process.env.PAYMENT_RETRY_WINDOW_SECONDS ?? '900',
+          10,
+        ),
+      },
+      merchantReview: {
+        limit: parseInt(process.env.MERCHANT_REVIEW_LIMIT ?? '5', 10),
+        windowSeconds: parseInt(
+          process.env.MERCHANT_REVIEW_WINDOW_SECONDS ?? '3600',
+          10,
+        ),
+      },
+      withdrawalRequest: {
+        limit: parseInt(process.env.WITHDRAWAL_REQUEST_LIMIT ?? '3', 10),
+        windowSeconds: parseInt(
+          process.env.WITHDRAWAL_REQUEST_WINDOW_SECONDS ?? '3600',
+          10,
+        ),
+      },
+    },
   };
 };

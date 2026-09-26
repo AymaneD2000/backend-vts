@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { join } from 'path';
+import { assertSafeDatabaseConfiguration } from './database-config.guard';
 
 @Module({
   imports: [
@@ -9,6 +10,10 @@ import { join } from 'path';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (config: ConfigService) => {
+        const env = config.get<string>('env') ?? process.env.NODE_ENV ?? 'development';
+        const synchronize = config.get<boolean>('database.synchronize') ?? false;
+        const migrationsRun = config.get<boolean>('database.migrationsRun') ?? false;
+        assertSafeDatabaseConfiguration({ env, synchronize, migrationsRun });
         const url = config.get<string>('database.url');
         const ssl = config.get<boolean>('database.ssl')
           ? { rejectUnauthorized: false }
@@ -26,9 +31,9 @@ import { join } from 'path';
               }),
           ssl,
           autoLoadEntities: true,
-          synchronize: config.get<boolean>('database.synchronize'),
+          synchronize,
           migrations: [join(__dirname, 'migrations/*{.ts,.js}')],
-          migrationsRun: config.get<boolean>('database.migrationsRun'),
+          migrationsRun,
         };
       },
     }),

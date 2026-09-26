@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   FileValidator,
   Get,
   MaxFileSizeValidator,
@@ -8,6 +9,7 @@ import {
   ParseFilePipe,
   Patch,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -31,6 +33,8 @@ import { CreateMerchantDto } from './dto/create-merchant.dto';
 import { UpdateMerchantDto } from './dto/update-merchant.dto';
 import { CreatePromotionDto, UpdatePromotionDto } from './dto/promotion.dto';
 import { MerchantsService } from './merchants.service';
+import { MerchantEngagementService } from './merchant-engagement.service';
+import { CreateMerchantReviewDto } from './dto/merchant-engagement.dto';
 
 interface MerchantLogoFile {
   filename: string;
@@ -62,7 +66,7 @@ class MerchantImageValidator extends FileValidator<Record<string, never>> {
 @UseGuards(JwtAuthGuard)
 @Controller('merchants')
 export class MerchantsController {
-  constructor(private readonly merchants: MerchantsService) {}
+  constructor(private readonly merchants: MerchantsService, private readonly engagement: MerchantEngagementService) {}
 
   // --- Admin ---
 
@@ -92,6 +96,36 @@ export class MerchantsController {
   @Get('mine')
   mine(@CurrentUser('userId') userId: string) {
     return this.merchants.myMerchants(userId);
+  }
+
+  @Get('favorites')
+  favorites(@CurrentUser('userId') userId: string) {
+    return this.engagement.listFavorites(userId);
+  }
+
+  @Get(':id/favorite')
+  favoriteState(@CurrentUser('userId') userId: string, @Param('id') id: string) {
+    return this.engagement.listFavorites(userId).then((rows) => ({ isFavorite: rows.some((row) => row.merchantId === id) }));
+  }
+
+  @Post(':id/favorite')
+  favorite(@CurrentUser('userId') userId: string, @Param('id') id: string) {
+    return this.engagement.favorite(userId, id);
+  }
+
+  @Delete(':id/favorite')
+  unfavorite(@CurrentUser('userId') userId: string, @Param('id') id: string) {
+    return this.engagement.unfavorite(userId, id);
+  }
+
+  @Get(':id/reviews')
+  reviews(@Param('id') id: string, @Query('cursor') cursor?: string, @Query('limit') limit?: string) {
+    return this.engagement.listReviews(id, limit ? Number(limit) : 20, cursor);
+  }
+
+  @Post(':id/reviews')
+  createReview(@CurrentUser('userId') userId: string, @Param('id') id: string, @Body() dto: CreateMerchantReviewDto) {
+    return this.engagement.createReview(userId, id, dto);
   }
 
   // Every signed-in user can discover active shops and restaurants.

@@ -17,6 +17,7 @@ import {
   MoreThanOrEqual,
   Not,
   Repository,
+  Raw,
 } from 'typeorm';
 import { ServiceType } from '../../common/service-type';
 import { RequestRideDto } from '../rides/dto/request-ride.dto';
@@ -39,6 +40,7 @@ import { Merchant, MerchantStatus } from './entities/merchant.entity';
 import { ProductCategory } from './entities/product-category.entity';
 import { Product } from './entities/product.entity';
 import { Promotion, PromotionType } from './entities/promotion.entity';
+import { effectiveProductAvailability } from './merchant-presenter';
 
 export interface MerchantCatalog {
   merchant: Merchant;
@@ -92,6 +94,49 @@ export class MerchantsService {
     });
   }
 
+  /**
+   * Find active merchants within a given radius (metres) of a point,
+   * ordered by distance (nearest first). Uses PostGIS ST_DWithin for
+   * efficient spatial queries when available, falls back to lat/lng.
+   */
+  async findNearby(
+    lat: number,
+    lng: number,
+    radiusMeters: number = 5000,
+    limit: number = 50,
+  ): Promise<Merchant[]> {
+    // Try PostGIS spatial query first
+    try {
+      return this.merchants.find({
+        where: {
+          status: MerchantStatus.ACTIVE,
+          location: Raw(
+            (alias) => `ST_DWithin(${alias}, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography, :radius)`,
+            { lat, lng, radius: radiusMeters },
+          ),
+        },
+        order: {
+          // Order by distance using PostGIS
+          location: Raw((alias) => `${alias} <-> ST_SetSRID(ST_MakePoint(:lng, :lat), 4326)::geography`),
+        },
+        take: limit,
+      });
+    } catch {
+      // Fallback to lat/lng with haversine in application layer
+      const all = await this.activeMerchants();
+      const { haversineMeters } = await import('../../common/geo');
+      return all
+        .map((m) => ({
+          merchant: m,
+          distance: haversineMeters({ lat, lng }, { lat: m.lat!, lng: m.lng! }),
+        }))
+        .filter((m) => m.distance <= radiusMeters)
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, limit)
+        .map((m) => m.merchant);
+    }
+  }
+
   featuredPromotions(): Promise<Promotion[]> {
     const now = new Date();
     return this.promotions.find({
@@ -132,7 +177,7 @@ export class MerchantsService {
       take: limit * 2,
     });
     return products
-      .filter((p) => p.merchant?.status === MerchantStatus.ACTIVE)
+      .filter((p) => p.merchant?.status === MerchantStatus.ACTIVE && effectiveProductAvailability(p))
       .slice(0, limit);
   }
 
@@ -148,7 +193,7 @@ export class MerchantsService {
       where: { merchantId: In(merchantIds), isAvailable: true },
       order: { sortOrder: 'ASC', name: 'ASC' },
     });
-    for (const product of products) {
+    for (const product of products.filter((p) => effectiveProductAvailability(p))) {
       const current = byMerchant.get(product.merchantId) ?? [];
       if (current.length < perMerchant) {
         current.push(product);

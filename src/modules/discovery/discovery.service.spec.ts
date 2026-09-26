@@ -66,7 +66,7 @@ describe('DiscoveryService', () => {
   let merchants: jest.Mocked<
     Pick<
       MerchantsService,
-      | 'activeMerchants'
+      | 'findNearby'
       | 'featuredPromotions'
       | 'previewProducts'
       | 'searchMerchants'
@@ -80,7 +80,7 @@ describe('DiscoveryService', () => {
 
   beforeEach(() => {
     merchants = {
-      activeMerchants: jest.fn().mockResolvedValue([]),
+      findNearby: jest.fn().mockResolvedValue([]),
       featuredPromotions: jest.fn().mockResolvedValue([]),
       previewProducts: jest.fn().mockResolvedValue(new Map()),
       searchMerchants: jest.fn().mockResolvedValue([]),
@@ -103,9 +103,9 @@ describe('DiscoveryService', () => {
   describe('feed', () => {
     it('ranks merchants nearest-first from the caller position', async () => {
       // origin at (12.60, -8.00); "near" is closer than "far".
-      merchants.activeMerchants.mockResolvedValue([
-        merchant('far', 12.9, -8.0),
+      merchants.findNearby.mockResolvedValue([
         merchant('near', 12.61, -8.0),
+        merchant('far', 12.9, -8.0),
       ]);
 
       const result = await service.feed({ lat: 12.6, lng: -8.0 });
@@ -117,7 +117,7 @@ describe('DiscoveryService', () => {
     });
 
     it('paginates via an opaque cursor without gaps or overlaps', async () => {
-      merchants.activeMerchants.mockResolvedValue([
+      merchants.findNearby.mockResolvedValue([
         merchant('a', 12.61, -8.0),
         merchant('b', 12.62, -8.0),
         merchant('c', 12.63, -8.0),
@@ -138,7 +138,7 @@ describe('DiscoveryService', () => {
     });
 
     it('round-trips a decodable feed cursor payload', async () => {
-      merchants.activeMerchants.mockResolvedValue([
+      merchants.findNearby.mockResolvedValue([
         merchant('a', 12.61, -8.0),
         merchant('b', 12.62, -8.0),
       ]);
@@ -157,7 +157,7 @@ describe('DiscoveryService', () => {
     });
 
     it('still returns merchants when the promotions source fails', async () => {
-      merchants.activeMerchants.mockResolvedValue([merchant('a', 12.61, -8.0)]);
+      merchants.findNearby.mockResolvedValue([merchant('a', 12.61, -8.0)]);
       merchants.featuredPromotions.mockRejectedValue(new Error('promo down'));
 
       const result = await service.feed({ lat: 12.6, lng: -8.0 });

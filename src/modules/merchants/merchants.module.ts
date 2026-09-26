@@ -12,6 +12,10 @@ import { Merchant } from './entities/merchant.entity';
 import { ProductCategory } from './entities/product-category.entity';
 import { Product } from './entities/product.entity';
 import { Promotion } from './entities/promotion.entity';
+import { MerchantFavorite } from './entities/merchant-favorite.entity';
+import { MerchantReview } from './entities/merchant-review.entity';
+import { Order } from '../orders/entities/order.entity';
+import { MerchantEngagementService } from './merchant-engagement.service';
 import { MerchantsController } from './merchants.controller';
 import { MerchantsService } from './merchants.service';
 
@@ -23,6 +27,9 @@ import { MerchantsService } from './merchants.service';
       Product,
       Promotion,
       User,
+      MerchantFavorite,
+      MerchantReview,
+      Order,
     ]),
     RidesModule,
     MulterModule.registerAsync({
@@ -68,7 +75,7 @@ import { MerchantsService } from './merchants.service';
     }),
   ],
   controllers: [MerchantsController],
-  providers: [MerchantsService],
-  exports: [MerchantsService],
+  providers: [MerchantsService, MerchantEngagementService],
+  exports: [MerchantsService, MerchantEngagementService],
 })
 export class MerchantsModule {}

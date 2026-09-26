@@ -18,9 +18,11 @@ export interface MerchantFeedItem {
   id: string;
   name: string;
   logoUrl: string | null;
+  coverUrl?: string | null;
   category: string;
   distanceMeters: number;
   rating?: number;
+  ratingCount?: number;
   offerBadge?: string;
   previewProducts: FeedPreviewProduct[];
 }
@@ -45,8 +47,11 @@ export interface SearchMerchantRow {
   id: string;
   name: string;
   logoUrl: string | null;
+  coverUrl?: string | null;
   category: string;
   distanceMeters: number | null;
+  ratingAvg?: number;
+  ratingCount?: number;
 }
 
 export interface SearchDishRow {
