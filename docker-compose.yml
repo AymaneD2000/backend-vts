@@ -52,7 +52,7 @@ services:
       DB_PASSWORD: ${DB_PASSWORD:-vts}
       DB_NAME: ${DB_NAME:-vts}
       DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-true}
-      DB_MIGRATIONS_RUN: ${DB_MIGRATIONS_RUN:-false}
+      DB_MIGRATIONS_RUN: "false"
       DB_SSL: ${DB_SSL:-false}
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:-6379}
