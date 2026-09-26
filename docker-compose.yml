@@ -51,14 +51,14 @@ services:
       DB_USER: ${DB_USER:-vts}
       DB_PASSWORD: ${DB_PASSWORD:-vts}
       DB_NAME: ${DB_NAME:-vts}
-      DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-false}
-      DB_MIGRATIONS_RUN: ${DB_MIGRATIONS_RUN:-true}
+      DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-true}
+      DB_MIGRATIONS_RUN: ${DB_MIGRATIONS_RUN:-false}
       DB_SSL: ${DB_SSL:-false}
       REDIS_HOST: redis
       REDIS_PORT: ${REDIS_PORT:-6379}
-      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET}
+      JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev_access_secret_change_in_prod}
       JWT_ACCESS_TTL: ${JWT_ACCESS_TTL:-900s}
-      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET}
+      JWT_REFRESH_SECRET: ${JWT_REFRESH_SECRET:-dev_refresh_secret_change_in_prod}
       JWT_REFRESH_TTL: ${JWT_REFRESH_TTL:-30d}
       OTP_TTL_SECONDS: ${OTP_TTL_SECONDS:-300}
       OTP_LENGTH: ${OTP_LENGTH:-6}
